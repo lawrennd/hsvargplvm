@@ -9,9 +9,11 @@
 %}
 
 
-if exist('diaryFile')
-    diary(diaryFile)
-end
+
+
+if exist('diaryFile'),  diary(diaryFile);  end
+if ~exist('saveModel'), saveModel = false; end
+%if ~exist('experimentNo'), experimentNo = 404; end
 
 % Fix seeds
 randn('seed', 1e5);
@@ -19,12 +21,12 @@ rand('seed', 1e5);
 
 hsvargplvm_init;
 
-experimentNo = 404;
 
 
 %---- LOAD DATA
-% Get the sequence numbers.
-[Y,lbls] = multvargplvmPrepareData(globalOpt.demoType, globalOpt.dataOptions);
+if ~exist('Y')
+    [Y,lbls] = multvargplvmPrepareData(globalOpt.demoType, globalOpt.dataOptions);
+end
 
 for i=1:size(Y,2)
     Yall{i} = Y(:,i);
@@ -114,20 +116,36 @@ end
 params = svargplvmExtractParam(model);
 model = svargplvmExpandParam(model, params);
 
+if ~isfield(globalOpt, 'saveName') || isempty(globalOpt.saveName)
+    globalOpt.saveName = vargplvmWriteResult([], 'multVargplvm', '', globalOpt.experimentNo);
+end
+model.saveName = globalOpt.saveName;
+
 %%
 %fprintf('# Median of vardist. covars: %d \n',median(median(model.vardist.covars)));
 %fprintf('# Min of vardist. covars: %d \n',min(min(model.vardist.covars)));
 %fprintf('# Max of vardist. covars: %d \n',max(max(model.vardist.covars)));
 
 if globalOpt.displayIters
-    model = svargplvmOptimiseModel(model);
+    if strcmp(globalOpt.saveName, 'noSave')
+        model = svargplvmOptimiseModel(model, true, false); % don't save the model
+    else
+        model = svargplvmOptimiseModel(model);
+    end
 else
-    model = svargplvmOptimiseModelNoDisplay(model);
+    if strcmp(globalOpt.saveName, 'noSave')
+            model = svargplvmOptimiseModelNoDisplay(model,true,false); % don't save the model
+    else
+        model = svargplvmOptimiseModelNoDisplay(model);
+    end
 end
 
+if saveModel
+    prunedModel = svargplvmPruneModel(model);
+    vargplvmWriteResult(prunedModel);
+end
 
-
-return 
+ 
 
 %%
 allScales = svargplvmScales('get',model);
@@ -146,8 +164,10 @@ end
 %imagesc(binaryScales')
 %htree = linkage(allScalesMat,'single');
 %clu = cluster(htree, 12);
-clu = kmeans(allScalesMat,10);
-imagesc(clu')
+clu = kmeans(allScalesMat,2, 'emptyact', 'drop','distance','sqeuclidean');
+clu2 = kmeans(binaryScales, 3,  'emptyact', 'drop','distance','sqeuclidean');
+imagesc(clu'), figure, imagesc(clu2')
+
 
 
 %{

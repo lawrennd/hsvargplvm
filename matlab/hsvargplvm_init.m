@@ -6,100 +6,106 @@
 addpath(genpath('../../vargplvm/matlab'))
 addpath(genpath('../../svargplvm/matlab/'))
 
-defaults.experimentNo = 404;
-defaults.itNo = [500 2000];
-defaults.indPoints = 100;
-defaults.latentDim = {10,10};
-defaults.initVardistIters = 300;
-% Set to 1 to tie the inducing points with the latent vars. X
-defaults.fixInd = 0;
-defaults.baseKern = 'rbfardjit'; %{'rbfard2', 'white'};
-defaults.dynamicKern = {'rbf','white', 'bias'};
-defaults.initX = 'ppca';
-%%%defaults.backConstraints = 1; % Substituted with dynamicsConstrainType
-defaults.vardistCovarsMult = 2; 
-defaults.dataSetName = 'skelDecompose';  % 'bc/wine', 'bc/...'
-defaults.demoType = 'skelDecompose';  % 'bc/wine', 'bc/...'
-defaults.dataOptions = {};
-defaults.mappingInitialisation = 0;
-defaults.scale2var1 = 0;
-% Set to -1 to use all data. Set to scalar d, to only take d points from
-% each class. Set to a vector D with length equal to the number of classes C,
-% to take D(c) points from class c.
-defaults.dataPerClass = -1;
-% Set to -1 to keep all the training data, set to a number N to only keep N
-% datapoints.
-defaults.dataToKeep = -1;
-% Signal to noise ratio (initialisation for model.beta).
-defaults.initSNR = 100;
-% How many iterations to do to initialise the model with a static B. gplvm.
-% -1 means that no such initialisation will be done.
-defaults.initWithStatic = -1;
-% If initWithStatic ~= -1, this says how many iters with fixed
-% beta/sigmaf to perform.
-defaults.initWithStaticInitVardist = 300;
-% If initWithStatic ~= -1, this says what the initial SNR will be for the
-% initial static model.
-defaults.initStaticSNR = 25;
-% If true, then if also initWithStatic ~=1, we initialise the model.beta
-% and model.kern based on the initialised static model.
-defaults.initWithStaticAll = false;
-defaults.dynamicsConstrainType = []; % {'time'}; % Leave empty [] for no dynamics
-% If set to fals, then the dynamics kernel is not initialised with
-% bc_initdynKernel
-defaults.initDynKernel = 1;
-% A second (probably better) way to initialise the model
-defaults.initDynKernel2 = 0;
-% See bc_backConstraintsModelCreate and bc_restorePrunedModel
-defaults.labelMatrixPower = 0.5;
-% if not empty, the corresponding gradients of the kernel will be zero,
-% i.e. not learning these elements (typically for the variance of the
-% rbf/matern etc of a invcmpnd)
-defaults.fixedKernVarianceIndices = [];
-% If discrKernel is 'ones', then the discriminative kernel is
-% simply build based on a matrix with ones and minus ones, otherwise it is
-% based on a measure on the distance of each label from the mean of each
-% class.
-defaults.discrKernel = 'ones';
-% Default variance for a fixedwhite kernel
-defaults.fixedwhiteVar = 1e-5;
-% If set to some value, call it x, then after learning a constrained model,
-% (and if the function runStaticModel is called), a static model will be
-% initialised with the constrained model's latent space and learned for x iterations.
-defaults.runStaticModel = -1;
-defaults.runStaticModelInitIters = [];
-% Possible values: (none, one or both of them): 'labelsYinputs' and
-% 'labelsYoutputs'. If the first is there, then the Y of p(X|Y) is
-% augmented with the labels as C extra dimensions, where C is the total
-% number of classes (as we use 1-of-K encoding). Similarly with labelsYoutputs.
-defaults.dataConstraints = {};
-% Option to only run a static model.
-defaults.staticOnly = false;
-defaults.periodicPeriod = 2*pi;
-defaults.givenStaticModel = [];
-defaults.learnKernelVariance = 0;
-% Replaces optionsDyn.inverseWidth
-defaults.inverseWidthMult = 20;
-defaults.reconstrIters = 1500;
-
-defaults.DgtN = false;
-defaults.numLayers = 2;
-defaults.indTr = -1; % All data in the training set
-defaults.latentDimPerModel =1;
-defaults.latentDim = 15;
-defaults.initial_X = 'concatenated';
-defaults.displayIters = true;
-defaults.enableParallelism = true;
-
- fnames = fieldnames(defaults);
- for i=1:length(fnames)
-    if ~exist(fnames{i})
-        globalOpt.(fnames{i}) = defaults.(fnames{i});
-    else
-        globalOpt.(fnames{i}) = eval(fnames{i});
+if ~exist('globalOpt')
+    svargplvm_init 
+    defaults = globalOpt;
+    clear globalOpt
+    
+ 
+    %-------------------------------------------- Extra for hsvargplvm-----
+    %%%%%%%%%%%%%%%%%%%%% VARIOUS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    defaults.displayIters = true;
+    
+    
+    %%%%%%%%%%%%%%%%%%%%%% GRAPHICAL MODEL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % This is one entry, being replicated in all models, all layers.
+    defaults.mappingKern = 'rbfardjit';
+    
+    % For multvargplvm: This has to be as big as the number of submodels
+    % (horizontally in the graphical model X -> [Y_1, ..., Y_K])
+    % For hsvargplvm it should be a cell array in 2 dimensions, where e.g.
+    % {{'K1','K2'}, {K3}} means that bottom layer has kernels K1 and K2 and
+    % upper layer has kernel K3 (the order goes bottom - up).
+    % For hsvargplvm, this is also allowed to just be a single string, in
+    % which case it is replicated (it acts like defaults.mappingKern).
+    defaults.baseKern = 'rbfardjit';
+    
+    
+    % The number of latent space layers
+    defaults.H = 2;
+    
+       
+    % The number of inducing points for each layer. If this is a single
+    % number, then the same number is replicated in all models, all layers.
+    % Otherwise it should be a cell array in 2 dimensions, where e.g.
+    % {{'K1','K2'}, {K3}} means that bottom layer has number K1 and K2 and
+    % upper layer has number K3 (the order goes bottom - up). The entry 
+    % -1 means that K == N.
+    defaults.K = -1;
+    
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%   LATENT SPACE %%%%%%%%%%%%%%%%%%%%%%%%%
+    % The dimensionality of each latent space layer. If it's a cell array, then
+    % it defines the dimensinality of each layer separately and needs to be
+    % in the same size as H.
+    defaults.Q = 10;
+    
+    
+    % How to initialise the latent space in level h based on the data of
+    % level h-1. This can either be a signle entry (replicated in all
+    % levels) or it can be a cell array of length H, i.e. different
+    % initialisation for each level.
+    % The values of this field are either strings, so that [@initX 'Embed']
+    % is called, or it can be a matrix of an a priori computed latent space.
+    defaults.initX = 'ppca';
+    
+    % How to initialise the latent space of level h in case there are more than one
+    % "modalities" in level h-1. This can either be a cell array of length
+    % H or a single entry replicated in all layers, or
+    % it is disregarded if there is only 1 modality per layer.
+    % The allowed values in this field are:
+    % 'concatenated', 'separately', 'custom'. 
+    % 'separately', means apply the initX function to each
+    % of the datasets and then concatenate. 'concatenated', means first concatenate
+    % the datasets and then apply the 'initX' function. 'custom' is like the
+    % "separately", but it implies that latentDimPerModel is a cell specifying
+    % how many dimensions to use for each submodel.
+    defaults.initial_X = 'concatenated';
+    
+    % !! The latent space dimensionality in case there are several
+    % modalities arises as follows:
+    % If initial_X is 'concatenated', then it is the corresponding Q
+    % parameter set above. If it is 'separately', then the latent
+    % dimensionality per model will be ceil(Q/num.Modalities).
+    % 'custom' is not yet supported
+    
+    
+    %{
+        % In case initial_X is 'separately', this says how many dimensions to
+        % set per modality. This can either be a cell array of length
+        % H or a single entry replicated in all layers, or
+        % it is disregarded if  initial_X is 'concatenated' (see below)
+        defaults.latentDimPerModel = {8};
+    
+    
+        % In case initial_X is 'concatenated', this says how many dimensions to
+        % keep in total for layer h. This can either be a cell array of length
+        % H or a single entry replicated in all layers, or
+        % it is disregarded if  initial_X is 'separately' or 'custom' (see above)
+        defaults.latentDim = 15;
+    %}
+    %-
+    
+    fnames = fieldnames(defaults);
+    for i=1:length(fnames)
+        if ~exist(fnames{i})
+            globalOpt.(fnames{i}) = defaults.(fnames{i});
+        else
+            globalOpt.(fnames{i}) = eval(fnames{i});
+        end
     end
- end
- 
- 
- clear('defaults', 'fnames');
-
+    
+    
+    clear('defaults', 'fnames');
+    
+end

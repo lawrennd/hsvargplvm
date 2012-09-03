@@ -13,6 +13,8 @@ end
 
 experimentNo = 404;
 
+%%%% !!! TODO: Here we should probably keep only the dims. of X that have
+%%%% nonzero weight
 
 for i=1:size(prevModel.X,2)
     Ytr{i} = prevModel.X(:,i);
