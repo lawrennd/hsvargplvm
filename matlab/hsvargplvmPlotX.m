@@ -1,6 +1,12 @@
-function hsvargplvmPlotX(model, layer, dims, symb)
+function hsvargplvmPlotX(model, layer, dims, symb, theta)
 
-if nargin < 4
+% This argument allows us to rotate a 2-D visualisation by theta degrees
+% (rad)
+if nargin < 5 || isempty(theta)
+    theta = 0; % TODO
+end
+
+if nargin < 4 || isempty(symb)
     symb = 'x';
 end
 

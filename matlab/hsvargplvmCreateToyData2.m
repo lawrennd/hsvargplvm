@@ -8,24 +8,207 @@
 % TODO: fix numSharedDims, numHierDims, numPrivSignalDims to add more than
 % one dimension for each signal category.
 
-function [Yall, dataSetNames, Z] = hsvargplvmCreateToyData2(type, N, D, numSharedDims, numHierDims, noiseLevel,hierSignalStrength)
-
+function [Yall, dataSetNames, Z] = hsvargplvmCreateToyData2(toyType, N, D, numSharedDims, numHierDims, noiseLevel,hierSignalStrength)
+% Fix seeds
+randn('seed', 1e4);
+rand('seed', 1e4);
 
 if nargin < 7 || isempty(hierSignalStrength),     hierSignalStrength = 0.6;  end
 if nargin < 6 || isempty(noiseLevel),             noiseLevel = 0.1;  end
+% This cannot be controled in the current version
 if nargin < 5 || isempty(numHierDims),            numHierDims = 1;   end
+% This cannot be controled in the current version
 if nargin < 4 || isempty(numSharedDims),          numSharedDims = 5; end
 if nargin < 3 || isempty(D),                      D = 10;            end
 if nargin < 2 || isempty(N),                      N = 100;           end
-if nargin < 1 || isempty(type),                   type = 'fols';     end
+if nargin < 1 || isempty(toyType),                   toyType = 'fols';     end
 
-switch type
-    case 'fols'
-        alpha = linspace(0,4*pi,N);
-        privSignalInd = [1 2];
-        sharedSignalInd = 3;
-        hierSignalInd = 4;
+alpha = linspace(0,4*pi,N);
+privSignalInd = [1 2];
+sharedSignalInd = 3;
+hierSignalInd = 4;
+
+%%
+switch toyType
+    case {'hgplvmSample', 'hgplvmSample2'}
+        if strcmp(toyType, 'hgplvmSample')
+            load '../../../DATA_local_small/hierarchical/hgplvmSampleData.mat';
+        elseif strcmp(toyType, 'hgplvmSample2')
+            load '../../../DATA_local_small/hierarchical/hgplvmSampleData2.mat'; %%%NOT A GOOD DATASET
+        end
+        Yall{1} = YA; Yall{2} = YB;
+        subplot(3,2,1)
+        plot(X2(:,1), X2(:,2),'x-'); title('X2')
+        subplot(3,2,3)
+        plot(XA(:,1), XA(:,2),'x-'); title('XA')
+        subplot(3,2,4)
+        plot(XB(:,1), XB(:,2),'x-'); title('XB')
+        subplot(3,2,5)
+        plot(YA,'x-'); title('YA');
+        subplot(3,2,6)
+        plot(YB,'x-'); title('YB');
+        Z = {XA,XB,X2};
+        dataSetNames = 'hgplvmSample';
+        %{
+        figure
+        pcaXA = ppcaEmbed(YA, 2);
+        pcaXB = ppcaEmbed(YB,2);
+        pcaX2 = ppcaEmbed([XA XB],2);
+        subplot(2,2,1)
+        plot(pcaX2(:,1), pcaX2(:,2), 'x-'); title('pcaX2');
+        subplot(2,2,3)
+        plot(pcaXA(:,1), pcaXA(:,2), 'x-'); title('pcaXA');
+        subplot(2,2,4)
+        plot(pcaXB(:,1), pcaXB(:,2), 'x-'); title('pcaXB');
         
+        figure
+        isomapXA = isomap2Embed(YA, 2);
+        isomapXB = isomap2Embed(YB,2);
+        isomapX2 = isomap2Embed([XA XB],2);
+        subplot(2,2,1)
+        plot(isomapX2(:,1), isomapX2(:,2), 'x-'); title('isomapX2');
+        subplot(2,2,3)
+        plot(isomapXA(:,1),isomapXA(:,2), 'x-'); title('isomapXA');
+        subplot(2,2,4)
+        plot(isomapXB(:,1), isomapXB(:,2), 'x-'); title('isomapXB');
+        %}
+        return
+    case 'hgplvmSampleShared'
+        load '../../../DATA_local_small/hierarchical/hgplvmSampleDataShared.mat';
+        Yall{1} = [YA YC]; Yall{2} = [YB YC];
+        
+        subplot(3,3,1)
+        plot(X2(:,1),'x-'); title('X2')
+        subplot(3,3,4)
+        plot(XA(:,1),'x-'); title('XA')
+        subplot(3,3,5)
+        plot(XB(:,1),'x-'); title('XB')
+        subplot(3,3,6)
+        plot(XC(:,1),'x-'); title('XC')
+        subplot(3,3,7)
+        plot(YA,'x-'); title('YA');
+        subplot(3,3,8)
+        plot(YB,'x-'); title('YB');
+        Z = {XA,XB,XC,X2};
+        dataSetNames = 'hgplvmSampleShared';
+        %{
+        figure
+        pcaX1A = ppcaEmbed([YA YC], 2);
+        pcaX1B = ppcaEmbed([YB YC],2);
+        pcaX2 = ppcaEmbed([XA XB XC],1);
+        subplot(1,3,1)
+        plot(pcaX1A(:,1), pcaX1A(:,2), 'x-'); title('pcaX1A');
+        subplot(1,3,2)
+        plot(pcaX1B(:,1), pcaX1B(:,2), 'x-'); title('pcaX1B');
+        subplot(1,3,3)
+        plot(pcaX2(:,1),'x-'); title('pcaX2');
+        
+        figure
+        isomapX1A = isomap2Embed([YA YC], 2);
+        isomapX1B = isomap2Embed([YB YC],2);
+        isomapX2 = isomap2Embed([XA XB XC],1);
+        subplot(1,3,1)
+        plot(isomapX1A(:,1), isomapX1A(:,2), 'x-'); title('isomapX1A');
+        subplot(1,3,2)
+        plot(isomapX1B(:,1), isomapX1B(:,2), 'x-'); title('isomap1B');
+        subplot(1,3,3)
+        plot(isomapX2(:,1),'x-'); title('isomapX2');
+        %}
+        return
+    case 'clusters'
+        addpath('../../../other/dimRed/');
+        randn('seed', 1e5);
+        rand('seed', 1e5);
+        pom = [25]; % points per mixture
+        ppm = [pom pom pom pom];
+        centers = [10 10;
+            10 15;
+            8 13;
+            12 13];
+        stdev = [0.001 1];
+        [data1,labels1]=makegaussmixnd(centers,stdev,ppm);
+        stdev = [1 0.001];
+        [data2,labels2]=makegaussmixnd(centers,stdev,ppm);
+        N = size(data1,1);
+        dataNew = data1(1:N/2,:);
+        labelsNew = labels1(1:N/2);
+        dataNew = [dataNew; data2(N/2+1:end,:)];
+        labelsNew = [labelsNew  labels2(N/2+1:end)];
+        X1 = dataNew(1:N/2,:);
+        X2 = dataNew(N/2+1:end,:);
+        %{
+% Rotation
+theta = pi;
+rotMapping = [cos(theta) -sin(theta); sin(theta) cos(theta)];
+X1 = X1;
+X2 = X2 * rotMapping;
+% Translation both directions
+X2 = X2 + 15*ones(size(X2));
+X1 = X1 - 10*ones(size(X1));
+% Translation x-axis
+X2 = X2 - 5.*repmat([1 0], size(X2,1), 1);
+        %}
+        data = [X1; X2];
+        data = data * rand(2,3)*10;
+        data = data + 2 .* randn(size(data));
+        data = scaleData(data);
+        pcaX = pcaEmbed(data,2);
+        
+        isomapX = isomapEmbed2(data,2); close;
+        subplot(1,3,1);
+        plotcol(data, ppm, 'rgbk'); title('original');
+        subplot(1,3,2);
+        plotcol(pcaX, ppm ,'rgbk'); title('pca')
+        subplot(1,3,3);
+        plotcol(isomapX, ppm, 'rgbk'); title('isomap');
+        Yall{1} = data;
+        Z = {X1,X2};
+        dataSetNames = 'clusters';
+        return
+        %%
+    case 'fols3'
+        %%
+        dataSetNames={'fols3'};
+        H = sin(alpha)'; % HIERARCHICAL SIGNAL
+        XA = scaleData(sin(H).^3, true);
+        XB = scaleData(H.^2-H, true);
+        
+        %bar(pca([XA XB H])); --> 2 scales
+        Xshared = scaleData(cos(2*alpha)', true);
+        X1 = [XA Xshared];
+        X2 = [XB Xshared];
+        % bar(pca([X1 X2])); % 3 scales. Hope that the hier. model will discover the fourth commonality in the higher level
+        Yall{1} = X1 * rand(2,D);
+        Yall{1}= Yall{1} + noiseLevel.*randn(size(Yall{1}));
+        Yall{2} = X2 * rand(2,D);
+        Yall{2} = Yall{2} + noiseLevel.*randn(size(Yall{2}));
+        bar(pca([Yall{1} Yall{2}])); % 3 scales
+        Z = {XA,XB,Xshared,H};
+        %%
+        return
+    case 'fols2'
+        %%
+        dataSetNames={'fols2'};
+        % H = [sin(alpha)', cos(alpha)']; % HIERARCHICAL SIGNAL (circle)
+        Q2 = 1;
+        H = sin(alpha)'; % N x Q2
+        XA = 3*H + H.*linspace(-10, 10, size(H,1))'; % maybe omit H.*
+        XB = -10*H - H.*linspace(-10,10,size(H,1))';
+        %bar(pca([XA XB H])); --> 2 scales
+        Xshared = scaleData(cos(2*alpha)'.*10);
+        X1 = [XA Xshared];
+        X2 = [XB Xshared];
+        % bar(pca([X1 X2])); % 3 scales. Hope that the hier. model will discover the fourth commonality in the higher level
+        Yall{1} = X1 * rand(2,D);
+        Yall{1}= Yall{1} + noiseLevel.*randn(size(Yall{1}));
+        Yall{2} = X2 * rand(2,D);
+        Yall{2} = Yall{2} + noiseLevel.*randn(size(Yall{2}));
+        bar(pca([Yall{1} Yall{2}])); % 3 scales
+        Z = {XA,XB,Xshared,H};
+        %%
+        return
+    case 'fols'
+        dataSetNames={'fols_cos', 'fols_sin'};
         % private signals
         Z{1} = cos(alpha)';
         Z{2} = sin(alpha)';
@@ -33,56 +216,73 @@ switch type
         Z{3}= (cos(alpha)').^2;
         % Hierarchical signal
         Z{4} = heaviside(linspace(-10,10,N))'; % Step function
-       % Z{3} = heaviside(Z{3}); % This turns the signal into a step function
-       % Z{3} = 2*cos(2*alpha)' + 2*sin(2*alpha)' ; %
+        % Z{3} = heaviside(Z{3}); % This turns the signal into a step function
+        % Z{3} = 2*cos(2*alpha)' + 2*sin(2*alpha)' ; %
         
-        
-        % Scale and center data
-        for i=1:length(Z)
-            bias_Z{i} = mean(Z{i});
-            Z{i} = Z{i} - repmat(bias_Z{i},size(Z{i},1),1);
-            scale_Z{i} = max(max(abs(Z{i})));
-            Z{i} = Z{i} ./scale_Z{i};
-        end
-        
-        % Attach the shared to the private signal after mapping to higher
-        % dimentions
-        for i=privSignalInd
-            % Map 1-Dim to D-Dim and add some noise
-            Zp{i} = [Z{i}*rand(1,ceil(D/2)) Z{sharedSignalInd}*rand(1,ceil(D/2))];
-        end
-        
-        % Map hier. signal to higher dimensions as well
-        Zp{hierSignalInd} = Z{hierSignalInd}*rand(1, size(Zp{privSignalInd(1)},2));
-        
-        % Apply hier. signal and then apply noise.
-        for i=privSignalInd
-            Zpp{i} = Zp{i} + hierSignalStrength.*Zp{hierSignalInd}; %           
-            Yall{i} = Zpp{i} + noiseLevel.*randn(size(Zpp{i})); % Add noise
-        end
-        
-        % How many signals are there in the whole dataset?
-        
-        bar(pca([Yall{1} Yall{2}]))
-        %---
-
-        dataSetNames={'fols_cos', 'fols_sin'};
-        
-        for i=privSignalInd
-            figure
-            title(['model ' num2str(i)])
-            subplot(2,1,1)
-            plot(Z{i}), hold on
-            plot(Z{sharedSignalInd}, 'r')
-            plot(pcaEmbed(Yall{i},1), 'm')
-            legend('Orig.','Shared','Final')
-            subplot(2,1,2)
-            plot(Z{hierSignalInd});
-            legend('Hier.')
-        end
+    case 'gps'
+        dataSetNames={'gp_periodic', 'gp_matern32'};
+        kern1 = kernCreate(alpha', 'rbfperiodic');
+        K1 = kernCompute(kern1, alpha');
+        Z{1} = gsamp(zeros(1, size(K1, 1)), K1, 1)';
+        kern2 = kernCreate(alpha', 'matern32');
+        K2 = kernCompute(kern2, alpha');
+        Z{2} = gsamp(zeros(1, size(K2,1)), K2, 1)';
+        % Shared signal
+        Z{3}= (cos(alpha)').^2;
+        % Hierarchical signal
+        Z{4} = heaviside(linspace(-10,10,N))'; % Step function
 end
 
-%{ 
+% Scale and center data
+for i=1:length(Z)
+    bias_Z{i} = mean(Z{i});
+    Z{i} = Z{i} - repmat(bias_Z{i},size(Z{i},1),1);
+    scale_Z{i} = max(max(abs(Z{i})));
+    Z{i} = Z{i} ./scale_Z{i};
+end
+
+% Attach the shared to the private signal after mapping to higher
+% dimentions
+if numSharedDims == 0 %% TEMP (hack)
+    Z{sharedSignalInd} = [];
+    for i=privSignalInd
+        Zp{i} = [Z{i}*rand(1,ceil(D/2))];
+    end
+else
+    for i=privSignalInd
+        Zp{i} = [Z{i}*rand(1,ceil(D/2)) Z{sharedSignalInd}*rand(1,ceil(D/2))];
+    end
+end
+
+% Map hier. signal to higher dimensions as well
+Zp{hierSignalInd} = Z{hierSignalInd}*rand(1, size(Zp{privSignalInd(1)},2));
+
+% Apply hier. signal and then apply noise.
+for i=privSignalInd
+    Zpp{i} = Zp{i} + hierSignalStrength.*Zp{hierSignalInd}; %
+    Yall{i} = Zpp{i} + noiseLevel.*randn(size(Zpp{i})); % Add noise
+end
+
+% How many signals are there in the whole dataset?
+
+bar(pca([Yall{1} Yall{2}]))
+%---
+
+for i=privSignalInd
+    figure
+    title(['model ' num2str(i)])
+    subplot(2,1,1)
+    plot(Z{i}), hold on
+    plot(Z{sharedSignalInd}, 'r')
+    plot(pcaEmbed(Yall{i},1), 'm')
+    legend('Orig.','Shared','Final(PCA)')
+    subplot(2,1,2)
+    plot(Z{hierSignalInd});
+    legend('Hier.')
+end
+end
+
+%{
 %This should return the original signals (in case there is no
 %hierarchical signal)
 [Yall, dataSetNames, Z] = hsvargplvmCreateToyData([],[],[],[],[],[],0);

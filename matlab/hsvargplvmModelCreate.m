@@ -18,14 +18,25 @@ for h = 1:options.H
     
     % Number of models in leaves layer
     M = 1;
-    if iscell(Ytr), M = length(Ytr); end
+    if iscell(Ytr), 
+        M = length(Ytr); 
+    else
+        % The program assumes that data are stored in cells, even if it's a
+        % single dataset
+        Ytr = {Ytr};
+    end
     
     Q = options.Q{h};
     
     %------------- Latent space ---------------------------------------------
     mAll = [];
     for i = 1:M
-        m{i} = scaleData(Ytr{i}, options.scale2var1);
+       % m{i} = scaleData(Ytr{i}, options.scale2var1); %%%????????? !!!!!!!!!!!!!!!!
+       if h == 1 || globalOpt.centerMeans
+           m{i} = scaleData(Ytr{i}, options.scale2var1); 
+       else
+           m{i} = Ytr{i};
+       end
         mAll = [mAll m{i}];
     end
     
@@ -100,7 +111,12 @@ for h = 1:options.H
         % Init vargplvm model
         %model{i}.X = curX; 
         model{i}.vardist.means = curX;
-        model{i} = vargplvmParamInit(model{i}, m{i}, curX, globalOpt);
+        if iscell(globalOpt.initSNR)
+            optInit.initSNR = globalOpt.initSNR{h};
+        else
+            optInit.initSNR = globalOpt.initSNR;
+        end
+        model{i} = vargplvmParamInit(model{i}, m{i}, curX, optInit);
         %model{i}.X = curX;
         model{i}.vardist.means = curX;
         
@@ -149,12 +165,19 @@ for h = 1:options.H
     if h ~= options.H
         clear Ytr;
         %Ytr{1} = hmodel.layer{h}.X; % TODO!!! Allow multiple models here
+        
+        % !!!? Scaling is not needed here, because it is done internally in
+        % vargplvmCreate
         Ytr{1} = hmodel.layer{h}.vardist.means; 
     end
     
 
 end
 
+if isfield(options, 'optimiser')
+    hmodel.optimiser = options.optimiser;
+end
+hmodel.centerMeans = globalOpt.centerMeans;
 hmodel.date = date;
 hmodel.info = ' Layers are indexed bottom-up. The bottom ones, i.e. layer{1}.comp{:} are the observed data.';
 hmodel.info = [hmodel.info sprintf('\n The top layer is the parent latent space.')];

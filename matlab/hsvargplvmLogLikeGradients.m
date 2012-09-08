@@ -32,11 +32,7 @@ startInd = model.nParams-model.layer{model.H}.nParams+1;
 endInd = startInd + model.layer{model.H}.vardist.nParams-1;
 g(startInd:endInd) = g(startInd:endInd) + g_parent;
 
-
-%%%TEMP
-%g = [g zeros(1,model.nParams - length(g))];
-%%%
-
+ 
 end
 
 

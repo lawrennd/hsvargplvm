@@ -17,7 +17,7 @@ if ~exist('saveModel'), saveModel = false; end
 randn('seed', 1e5);
 rand('seed', 1e5);
 
-hsvargplvm_init;
+multvargplvm_init; % hsvargplvm_init;
 
 
 

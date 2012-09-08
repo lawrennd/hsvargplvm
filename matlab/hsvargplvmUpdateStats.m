@@ -12,10 +12,15 @@ for h=1:model.H
             means = model.layer{h-1}.vardist.means;
             covars = model.layer{h-1}.vardist.covars;
             
-            [Y, bias, scale] = scaleData(means);
+            if model.centerMeans
+                [Y, bias, scale] = scaleData(means); %% ??????????????????????
+                model.layer{h}.comp{m}.scale = scale; %%% ???????
+                model.layer{h}.comp{m}.bias = bias;  %%% ???
+            else
+                Y = means; %%%%%%%% ???????????
+            end
             model.layer{h}.comp{m}.mOrig = Y;
-            model.layer{h}.comp{m}.scale = scale;
-            model.layer{h}.comp{m}.bias = bias;
+
             
             %!!!  TODO: The following should be Y.*Y, i.e. the centered version
             % of the means. That would also change FURTHER the bound,

@@ -1,6 +1,10 @@
-function SNR = hsvargplvmShowSNR(model)
+function SNR = hsvargplvmShowSNR(model, layers)
 
-for h=1:model.H
+if nargin < 2
+    layers = 1:model.H;
+end
+
+for h=layers
     fprintf('# Layer %d\n',h)
     for m=1:model.layer{h}.M
         if isfield(model.layer{h}.comp{m}, 'mOrig')

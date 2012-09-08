@@ -16,6 +16,19 @@ if ~exist('globalOpt')
     %%%%%%%%%%%%%%%%%%%%% VARIOUS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     defaults.displayIters = true;
     
+    % If we are fixing beta or sigmaf, we will do so only for the following
+    % layers (1 is only leaves)
+    defaults.initVardistLayers = 1;
+    
+    % If true, then the layer h takes a CENTERED version of the X of layer
+    % h-1. That might not be correct because the expectation in the bound
+    % is computed disregarding biases. The scaleData that centers the means
+    % if this option is on, is in the create and updateStats functions
+    defaults.centerMeans = false;
+    
+    % If true, then there will be one leaf model per input dimension (only
+    % if the corresponding demo checks and takes this action)
+    defaults.multOutput = false;
     
     %%%%%%%%%%%%%%%%%%%%%% GRAPHICAL MODEL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % This is one entry, being replicated in all models, all layers.

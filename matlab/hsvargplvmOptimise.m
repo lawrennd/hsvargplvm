@@ -1,4 +1,4 @@
-function model = hsvargplvmOptimise(model, display, iters, varargin)
+function [model, gradEvaluations, objEvaluations] = hsvargplvmOptimise(model, display, iters, varargin)
 
 % SVARGPLVMOPTIMISE Optimise the sVARGPLVM.
 % FORMAT
@@ -25,6 +25,9 @@ if nargin < 3
     display = 1;
   end
 end
+
+gradEvaluations = 0;
+objEvaluations = 0;
 
 options = optOptions;
 if length(varargin) == 2
@@ -71,10 +74,14 @@ elseif strcmp(func2str(optim), 'scg2')
    % NETLAB style optimization with a slight modification so that an
    % objectiveGradient can be used where applicable, in order to re-use
    % precomputed quantities.
-   params = optim('hsvargplvmObjectiveGradient', params,  options, 'hsvargplvmGradient', model);
+   [params, opt]= optim('hsvargplvmObjectiveGradient', params,  options, 'hsvargplvmGradient', model);
+   gradEvaluations = opt(11);
+   objEvaluations = opt(10);
 else
    % NETLAB style optimization.
-   params = optim('hsvargplvmObjective', params,  options,  'hsvargplvmGradient', model);
+   [params, opt] = optim('hsvargplvmObjective', params,  options,  'hsvargplvmGradient', model);
+   gradEvaluations = opt(9);
+   objEvaluations = opt(10);
 end
 
 model = hsvargplvmExpandParam(model, params);

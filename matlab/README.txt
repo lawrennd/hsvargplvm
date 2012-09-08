@@ -14,7 +14,7 @@
                               R E A D M E
 
 ___________________________________________________________________________
-### GENERAL ####
+############################# GENERAL #####################################
 ___________________________________________________________________________
 
 This is the implementation of a hierarchical variatioanl GPLVM, where
@@ -77,11 +77,97 @@ latent nodes in a hierarchy. To summarize, in the full model we can select:
     dimension (like multvargplvm). 
 
 
+
+
  
 ___________________________________________________________________________
-### HSVARGPLVM ####
-...
+########################## HSVARGPLVM ####################################
+___________________________________________________________________________
 
+_____________________________ STRUCTURE
+This is the model that implements the hierarchical vargplvm. The general
+structure is:
+X_H -> F -> X_{H-1} -> ... -> X_1 -> {F_1 -> Y_1, ..., F_M -> Y_M}
+where H is the total number of layers, Y are the observed data which can
+be split into M subsets (e.g. modalities) and all F's are associated with
+different a) kernel parameters b) inducing points and all X's are associated
+with different variational distribution. There is also a different beta
+for each F. In other words, each F is a different GP.
+
+X_H is the parent latent space
+X_1:X_{H-1} are the intermediate ones.
+
+
+* Definition: A model is all of the above associated with a different GP,
+i.e a variational distribution, inducing points, beta, F.
+
+* More than one models in the same layer are only allowed (for the moment)
+in the leaf nodes (TODO: change that !!!). These models share a variational
+distribution, exactly as in svargplvm.
+
+* Models of different layers, are coupled as follows:
+    model.y of layer h is the model.X of layer h-1.
+    model.m of layer h is the centered data of layer h-1.
+TODO: The equations at the moment do NOT include the bias, so model.m for 
+layers > 1 are uncentered...
+
+
+_____________________________ BOUND and derivatives
+
+The bound is as follows: (see notes) - 5 different kinds of terms
+
+
+_____________________________ Initialisation
+
+Check the hsvargplvmModelCreate in combination with hsvargplvm_init.
+In general, the values can either be given as a single variable (in which
+case this value is inherited in all models), or as a cell array (in which
+case a specific value is defined for each model). 
+
+
+_____________________________ Optimisation
+
+The optimisation can be done while initialising the variational
+distributions of some layers and then normal optimisation.
+This is done by calling:
+    model = hsvargplvmPropagateField(model, 'initVardist', true,dims);
+    model = hsvargplvmPropagateField(model, 'learnSigmaf', false,dims);
+for the initialisation, and
+    model = hsvargplvmPropagateField(model, 'initVardist', false,dims);
+    model = hsvargplvmPropagateField(model, 'learnSigmaf', true,dims);
+for afterwards. dims can be omitted to init. everything, but it is often
+useful to only fix only the leaf layers (i.e. dims = 1), -at least for 
+beta-, because the rest of the layers have different data variance in each
+iteration and the SNR cannot be fixed. For this reason, it might be also
+good to give a higher initSNR value to intermediate nodes, by using:
+e.g. initSNR = {100, 200}; if there are two layers.
+
+
+After optimisation, use hsvargplvmShowSNR(model) and
+hsvargplvmShowScales(model) to see the results, and
+hsvargplvmPlotX(model, layer, dims) to plot the dimensions.
+
+
+!! Note that if rbfardjit is used as a mapping kernel, then its variance
+(sigmaf) is always initialised to the variance of the data, var(m(:)),
+so by keeping both sigmaf and beta fixed the SNR is fixed in a better
+way that just fixing beta and using some other mapping kernel. 
+
+
+
+_____________________________ Current issues
+
+1) How to also segment X_h, h > 1? So that I can have the multvargplvm
+approach in the intermediate layers?
+2) How to manage the fact that some of the dimensions of X_h are irrelevant
+but nevertheless the upper level inherits all of the space? (hopefully
+the upper level's scales will "understand" and "inherit" the information
+about the irrelevant scales?)
+3) How to handle the fact that the data variance of a model in layer h>1
+always changes (since its data come from a X of the below layers which
+changes)? Does that affect the optimisation of beta of that particular
+layer? SNR should be relatively high and it depends on the variance of
+the data and the value of beta.
 
 
 
