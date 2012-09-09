@@ -4,18 +4,28 @@ jitter = 1e-6;
 
 for h=1:model.H
     for m=1:model.layer{h}.M
-        if h~=1
+        if h~=1 % Not leaf
             % This is an intermediate node. Its data change in every
             % iteration and we have to reset the scaled data to the means
             % of the vardist. of the previous node (future implementations
             % with more latent spaces can also have indices here!!)
             means = model.layer{h-1}.vardist.means;
             covars = model.layer{h-1}.vardist.covars;
-            
+            if ~isempty(model.layer{h}.comp{m}.latentIndices)
+                % In this layer h the "means" ie the X of layer h-1 are
+                % here outputs. We also have multOutput option, i.e. only
+                % the full output space "means" will be grouped into
+                % smaller subpsaces as defined in latentIndices.
+                means = means(:, model.layer{h}.comp{m}.latentIndices);
+                covars = covars(:, model.layer{h}.comp{m}.latentIndices);
+            end
             if model.centerMeans
                 [Y, bias, scale] = scaleData(means); %% ??????????????????????
                 model.layer{h}.comp{m}.scale = scale; %%% ???????
                 model.layer{h}.comp{m}.bias = bias;  %%% ???
+                % Probably centering the means would also change the bound,
+                % because now the expectation is not <x x'> but
+                % <(x-bias)(x-bias)'>, so what we do here is not enough!
             else
                 Y = means; %%%%%%%% ???????????
             end

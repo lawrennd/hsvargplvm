@@ -26,9 +26,12 @@ if ~exist('globalOpt')
     % if this option is on, is in the create and updateStats functions
     defaults.centerMeans = false;
     
-    % If true, then there will be one leaf model per input dimension (only
+    % If == 1, then there will be one leaf model per input dimension (only
     % if the corresponding demo checks and takes this action)
-    defaults.multOutput = false;
+    % If == 2, then the multOutput setting will also be carried in the
+    % second layer (i.e. one model per latent dimension). And so on.
+    % Maximum number allowed for this value is H-1.
+    defaults.multOutput = 0;
     
     %%%%%%%%%%%%%%%%%%%%%% GRAPHICAL MODEL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % This is one entry, being replicated in all models, all layers.

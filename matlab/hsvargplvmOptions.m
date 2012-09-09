@@ -16,7 +16,7 @@ options.K = globalOpt.K;
 options.enableDgtN = globalOpt.DgtN;
 options.initial_X = globalOpt.initial_X;
 options.initX = globalOpt.initX;
-
+options.multOutput = globalOpt.multOutput;
 % 
 options.optimiser = 'scg2';
 

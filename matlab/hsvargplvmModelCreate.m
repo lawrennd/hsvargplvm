@@ -12,9 +12,23 @@ if ~iscell(options.Q)
 end
 
 YtrOrig = Ytr;
-
+% This variable only matters when h > 1. In that case, if e.g.
+% prevLatentIndices={[1 2],[3 4]} it means that the
+% model.layer{h}.comp{1}.y = model.layer{h-1}.vardist.means(:,[1 2])
+% and similarly for the comp{2}.
+prevLatentIndices = {};
 for h = 1:options.H
     clear('m','mAll','initX','initial_X','curX');
+    % The following variable might be nonempty if it's set in the previous
+    % round. 
+    if ~isempty(prevLatentIndices)
+        if length(Ytr) > 1, error('Something went wrong!'); 
+        end
+        YY = Ytr{1}; Ytr = cell(1, length(prevLatentIndices));
+        for j=1:length(prevLatentIndices)
+            Ytr{j} = YY(:, prevLatentIndices{j});
+        end
+    end
     
     % Number of models in leaves layer
     M = 1;
@@ -22,10 +36,9 @@ for h = 1:options.H
         M = length(Ytr); 
     else
         % The program assumes that data are stored in cells, even if it's a
-        % single dataset
+        % single dataset it has to be in a cell
         Ytr = {Ytr};
     end
-    
     Q = options.Q{h};
     
     %------------- Latent space ---------------------------------------------
@@ -135,8 +148,18 @@ for h = 1:options.H
         %params = vargplvmExtractParam(model{i}); % !!!
         %model{i} = vargplvmExpandParam(model{i}, params); % !!!
         model{i}.vardist.covars = 0.5*ones(size(model{i}.vardist.covars)) + 0.001*randn(size(model{i}.vardist.covars));
-    end
         
+        % This tells us which indices of the previous latent space this
+        % model is responsible for. It can be empty if it's for the full
+        % latent space.
+        if ~isempty(prevLatentIndices)
+            model{i}.latentIndices = prevLatentIndices{i};
+        else
+            model{i}.latentIndices = {}; % empty means "all"
+        end
+    end
+    prevLatentIndices = {};
+     
     
     %---- Fix the structure of the big model
     hmodel.layer{h}.vardist = model{1}.vardist;
@@ -166,17 +189,27 @@ for h = 1:options.H
         clear Ytr;
         %Ytr{1} = hmodel.layer{h}.X; % TODO!!! Allow multiple models here
         
-        % !!!? Scaling is not needed here, because it is done internally in
-        % vargplvmCreate
-        Ytr{1} = hmodel.layer{h}.vardist.means; 
-    end
-    
 
+        if options.multOutput < h+1
+            % !!!? Scaling is not needed here, because it is done internally in
+            % vargplvmCreate
+            Ytr{1} = hmodel.layer{h}.vardist.means; 
+        else
+            % If we reach here, we have to create one model per dimension
+            % of the previous latent space. See also: updateStats
+            for qq = 1:size(hmodel.layer{h}.vardist.means,2)
+                %%Ytr{qq} = hmodel.layer{h}.vardist.means(:,qq);
+                prevLatentIndices{qq}=qq;
+            end
+            Ytr{1} = hmodel.layer{h}.vardist.means;
+        end
+    end
 end
 
 if isfield(options, 'optimiser')
     hmodel.optimiser = options.optimiser;
 end
+hmodel.multOutput = options.multOutput;
 hmodel.centerMeans = globalOpt.centerMeans;
 hmodel.date = date;
 hmodel.info = ' Layers are indexed bottom-up. The bottom ones, i.e. layer{1}.comp{:} are the observed data.';

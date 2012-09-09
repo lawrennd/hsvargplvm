@@ -32,7 +32,7 @@ startInd = model.nParams-model.layer{model.H}.nParams+1;
 endInd = startInd + model.layer{model.H}.vardist.nParams-1;
 g(startInd:endInd) = g(startInd:endInd) + g_parent;
 
- 
+
 end
 
 
@@ -63,39 +63,69 @@ end
 % the parent) is handled internally (no need if H == 2)
 function [g gSharedLeaves] = hsvargplvmLogLikeGradientsNodes(model)
 g=[]; % Final derivative
-gSharedLeavesMeans = 0;
-gSharedLeavesCovars = 0;
+gSharedLeavesMeans = zeros(model.layer{1}.N, model.layer{1}.q);
+gSharedLeavesCovars = zeros(model.layer{1}.N, model.layer{1}.q);
 for h=2:model.H
     g_h = []; % Derivative wrt params of layer h
-    
-    means = model.layer{h-1}.vardist.means;
-    covars = model.layer{h-1}.vardist.covars;
-    
+
     gShared = zeros(1, model.layer{h}.vardist.nParams); % Derivatives of the var. distr. of layer h
     for i=1:model.layer{h}.M % Derivative of the likelihood term of the m-th model of layer h
+        means = model.layer{h-1}.vardist.means;
+        covars = model.layer{h-1}.vardist.covars;
+        
+        %if model.centerMeans
+        % TODO
+        %end
+        
+        if ~isempty(model.layer{h}.comp{i}.latentIndices)
+            latInd = model.layer{h}.comp{i}.latentIndices;
+        else
+            % All indices (M == 1)
+            latInd = 1:model.layer{h-1}.vardist.latentDimension;
+        end
+        % In this layer h the "means" ie the X of layer h-1 are
+        % here outputs. If we also have multOutput option, i.e. only
+        % the full output space "means" will be grouped into
+        % smaller subpsaces as defined in latentIndices. If we
+        % don't have the multOutput>1 option, then means/covars will be the
+        % original ones.
+        means = means(:, latInd);
+        covars = covars(:, latInd);
+        
         model.layer{h}.comp{i}.vardist = model.layer{h}.vardist;
         model.layer{h}.comp{i}.onlyLikelihood = true;
+
+        % Calculates the derivatives for the vardist. params and the other
+        % params (apart from the KL) of the layer h > 1
         g_i = vargplvmLogLikeGradients(model.layer{h}.comp{i});
+                       
         % Now add the derivatives for the shared parameters (vardist)
         gShared = gShared + g_i(1:model.layer{h}.vardist.nParams);
-        g_i = g_i((model.layer{h}.vardist.nParams+1):end);
         
+        % g_i will now hold all the non-vardist. derivatives (the rest are
+        % taken care of in gShared)
+        g_i = g_i((model.layer{h}.vardist.nParams+1):end);
+
         %-- Amend the gShared OF THE PREVIOUS LAYER with the new terms due to the expectation
+        % If multOutput(h) is set, then the expectation of <\tilde{F}>_{q(X_{h-1}} will
+        % be split into Q expectations wrt q(X_{h-1}(:,q)), q=1,...,Q. In
+        % general (not tested yet!!!) it will not be grouped by q, but
+        % it could be defined as arbitrary subsets of X_{h-1}.
         beta = model.layer{h}.comp{i}.beta;
         if h == 2
             %-- Previous layer is leaves
             % Amend for the F3 term of the bound
-            gSharedLeavesMeans = gSharedLeavesMeans + beta * ...
+            gSharedLeavesMeans(:, latInd) = beta * ...
                 model.layer{h}.comp{i}.Z' * means;
-            gSharedLeavesCovars = gSharedLeavesCovars + 0.5*beta * ...
+            gSharedLeavesCovars(:, latInd) = 0.5*beta * ...
                 repmat(diag(model.layer{h}.comp{i}.Z), 1, size(means,2));
-            
+
             % Amend for the F0 term of the bound
-            gSharedLeavesMeans = gSharedLeavesMeans - beta * means;
-            gSharedLeavesCovars = gSharedLeavesCovars - 0.5*beta * ones(size(gSharedLeavesCovars));
-            
+            gSharedLeavesMeans(:, latInd) = gSharedLeavesMeans(:, latInd) - beta * means;
+            gSharedLeavesCovars(:, latInd) = gSharedLeavesCovars(:, latInd) - 0.5*beta * ones(size(gSharedLeavesCovars(:, latInd)));
+
             % Reparametrization: from dF/dS -> dF/d log(S)
-            gSharedLeavesCovars = covars.*gSharedLeavesCovars;
+            gSharedLeavesCovars(:, latInd) = covars.*gSharedLeavesCovars(:, latInd);
         else
             error('H > 2 not implemented yet!!')
             % TODO!!!! For > 2 layers:
@@ -105,11 +135,11 @@ for h=2:model.H
             % happens in the same function).
         end
         %--
-        
+
         g_h = [g_h g_i];
     end
     g_h = [gShared g_h];
-    
+
     % TODO!! (for H > 2)
     % ...
     g = [g g_h];
@@ -136,7 +166,7 @@ if isfield(model, 'fixInducing') & model.fixInducing
     warning('Implementation for fixing inducing points is not complete yet...')
     % Likelihood terms (coefficients)
     [gK_uu, gPsi0, gPsi1, gPsi2, g_Lambda, gBeta, tmpV] = vargpCovGrads(model);
-    
+
     % Get (in three steps because the formula has three terms) the gradients of
     % the likelihood part w.r.t the data kernel parameters, variational means
     % and covariances (original ones). From the field model.vardist, only
@@ -144,7 +174,7 @@ if isfield(model, 'fixInducing') & model.fixInducing
     [gKern1, gVarmeans1, gVarcovs1, gInd1] = kernVardistPsi1Gradient(model.kern, model.vardist, model.X_u, gPsi1');
     [gKern2, gVarmeans2, gVarcovs2, gInd2] = kernVardistPsi2Gradient(model.kern, model.vardist, model.X_u, gPsi2);
     [gKern0, gVarmeans0, gVarcovs0] = kernVardistPsi0Gradient(model.kern, model.vardist, gPsi0);
-    
+
     %%% Compute Gradients with respect to X_u %%%
     gKX = kernGradX(model.kern, model.X_u, model.X_u);
     % The 2 accounts for the fact that covGrad is symmetric
