@@ -30,30 +30,49 @@ hierSignalInd = 4;
 
 %%
 switch toyType
-    case {'hgplvmSample', 'hgplvmSample2'}
+    case {'fgplvmTwoModels' ,'fgplvmTwoModels2','fgplvmTwoModels3'}
+        if strcmp(toyType, 'fgplvmTwoModels')
+            [YA,YB,XA,XB] = fgplvmSampleModels();
+        elseif strcmp(toyType, 'fgplvmTwoModels2')
+            [YA,YB,XA,XB] = fgplvmSampleModels2(false);
+        elseif strcmp(toyType, 'fgplvmTwoModels3')
+            [YA,YB,XA,XB] = fgplvmSampleModels3(false);
+        end
+        %Yall{1} = YA; Yall{2} = YB;% 
+        Yall{1} = [YA YB];
+        Z = {XA,XB};
+        dataSetNames = toyType;
+        return
+    case {'hgplvmSample', 'hgplvmSample2', 'hgplvmSample3', 'hgplvmSampleTr1', 'hgplvmSampleTr2'}
         if strcmp(toyType, 'hgplvmSample')
             load '../../../DATA_local_small/hierarchical/hgplvmSampleData.mat';
         elseif strcmp(toyType, 'hgplvmSample2')
-            load '../../../DATA_local_small/hierarchical/hgplvmSampleData2.mat'; %%%NOT A GOOD DATASET
+            load '../../../DATA_local_small/hierarchical/hgplvmSampleData2.mat';
+        elseif strcmp(toyType, 'hgplvmSample3')
+            load '../../../DATA_local_small/hierarchical/hgplvmSampleData3.mat'; %%%NOT A GOOD DATASET
+        elseif strcmp(toyType, 'hgplvmSampleTr1')
+            load '../../../DATA_local_small/hierarchical/hgplvmSampleDataTr1.mat';
+        elseif strcmp(toyType, 'hgplvmSampleTr2')
+            load '../../../DATA_local_small/hierarchical/hgplvmSampleDataTr2.mat';
         end
         Yall{1} = YA; Yall{2} = YB;
         subplot(3,2,1)
-        plot(X2(:,1), X2(:,2),'x-'); title('X2')
+        myPlot(X2,'X2')
         subplot(3,2,3)
-        plot(XA(:,1), XA(:,2),'x-'); title('XA')
+        myPlot(XA,'XA')
         subplot(3,2,4)
-        plot(XB(:,1), XB(:,2),'x-'); title('XB')
+        myPlot(XB,'XB')
         subplot(3,2,5)
         plot(YA,'x-'); title('YA');
         subplot(3,2,6)
         plot(YB,'x-'); title('YB');
         Z = {XA,XB,X2};
-        dataSetNames = 'hgplvmSample';
+        dataSetNames = toyType;
         %{
         figure
         pcaXA = ppcaEmbed(YA, 2);
         pcaXB = ppcaEmbed(YB,2);
-        pcaX2 = ppcaEmbed([XA XB],2);
+        pcaX2 = ppcaEmbed([pcaXA pcaXB],2); %%%%% Used to be: [XA XB]
         subplot(2,2,1)
         plot(pcaX2(:,1), pcaX2(:,2), 'x-'); title('pcaX2');
         subplot(2,2,3)
@@ -64,7 +83,7 @@ switch toyType
         figure
         isomapXA = isomap2Embed(YA, 2);
         isomapXB = isomap2Embed(YB,2);
-        isomapX2 = isomap2Embed([XA XB],2);
+        isomapX2 = isomap2Embed([isomapXA isomapXB],2); %%%%% Used to be: [XA XB]
         subplot(2,2,1)
         plot(isomapX2(:,1), isomapX2(:,2), 'x-'); title('isomapX2');
         subplot(2,2,3)
@@ -73,46 +92,53 @@ switch toyType
         plot(isomapXB(:,1), isomapXB(:,2), 'x-'); title('isomapXB');
         %}
         return
-    case 'hgplvmSampleShared'
-        load '../../../DATA_local_small/hierarchical/hgplvmSampleDataShared.mat';
+    case {'hgplvmSampleShared','hgplvmSampleShared2','hgplvmSampleShared3'}
+        if strcmp(toyType, 'hgplvmSample')
+            load '../../../DATA_local_small/hierarchical/hgplvmSampleDataShared.mat';
+        elseif strcmp(toyType, 'hgplvmSampleShared2')
+            load '../../../DATA_local_small/hierarchical/hgplvmSampleShared2.mat';
+        elseif strcmp(toyType, 'hgplvmSampleShared3')
+            load '../../../DATA_local_small/hierarchical/hgplvmSampleShared3.mat';
+        end
         Yall{1} = [YA YC]; Yall{2} = [YB YC];
-        
-        subplot(3,3,1)
-        plot(X2(:,1),'x-'); title('X2')
-        subplot(3,3,4)
-        plot(XA(:,1),'x-'); title('XA')
-        subplot(3,3,5)
-        plot(XB(:,1),'x-'); title('XB')
-        subplot(3,3,6)
-        plot(XC(:,1),'x-'); title('XC')
-        subplot(3,3,7)
-        plot(YA,'x-'); title('YA');
-        subplot(3,3,8)
-        plot(YB,'x-'); title('YB');
         Z = {XA,XB,XC,X2};
         dataSetNames = 'hgplvmSampleShared';
         %{
-        figure
-        pcaX1A = ppcaEmbed([YA YC], 2);
-        pcaX1B = ppcaEmbed([YB YC],2);
-        pcaX2 = ppcaEmbed([XA XB XC],1);
-        subplot(1,3,1)
-        plot(pcaX1A(:,1), pcaX1A(:,2), 'x-'); title('pcaX1A');
-        subplot(1,3,2)
-        plot(pcaX1B(:,1), pcaX1B(:,2), 'x-'); title('pcaX1B');
-        subplot(1,3,3)
-        plot(pcaX2(:,1),'x-'); title('pcaX2');
-        
-        figure
-        isomapX1A = isomap2Embed([YA YC], 2);
-        isomapX1B = isomap2Embed([YB YC],2);
-        isomapX2 = isomap2Embed([XA XB XC],1);
-        subplot(1,3,1)
-        plot(isomapX1A(:,1), isomapX1A(:,2), 'x-'); title('isomapX1A');
-        subplot(1,3,2)
-        plot(isomapX1B(:,1), isomapX1B(:,2), 'x-'); title('isomap1B');
-        subplot(1,3,3)
-        plot(isomapX2(:,1),'x-'); title('isomapX2');
+subplot(3,3,2)
+plot(X2(:,1),'x-'); title('X2')
+subplot(3,3,4)
+plot(XA(:,1)); title('XA')
+subplot(3,3,5)
+plot(XB(:,1)); title('XB')
+subplot(3,3,6)
+plot(XC(:,1)); title('XC')
+subplot(3,3,7)
+plot(Yall{1},'x-'); title('Yall1');
+subplot(3,3,8)
+plot(Yall{2},'x-'); title('Yall2');
+
+ 
+figure
+pcaXA = ppcaEmbed(Yall{1}, 3);
+pcaXB = ppcaEmbed(Yall{2},3);
+pcaX2 = ppcaEmbed([pcaXA pcaXB],1); %%%%%%%%%%% USED TO BE ppcaEmbed(X1,2)
+subplot(1,3,1)
+plot(pcaX2(:,1), 'x-'); title('pcaX2');
+subplot(1,3,2)
+plot(pcaXA(:,1), pcaXA(:,2), 'x-'); title('pcaXA');
+subplot(1,3,3)
+plot(pcaXB(:,1), pcaXB(:,2), 'x-'); title('pcaXB');
+
+figure
+isomapXA = isomap2Embed(Yall{1}, 3);
+isomapXB = isomap2Embed(Yall{2}, 3);
+isomapX2 = isomap2Embed([isomapXA isomapXB],1);
+subplot(1,3,1)
+plot(isomapX2(:,1), 'x-'); title('isomapX2');
+subplot(1,3,2)
+plot(isomapXA(:,1), isomapXA(:,2), 'x-'); title('isomapXA');
+subplot(1,3,3)
+plot(isomapXB(:,1), isomapXB(:,2), 'x-'); title('isomapXB');
         %}
         return
     case 'clusters'
@@ -230,7 +256,7 @@ X2 = X2 - 5.*repmat([1 0], size(X2,1), 1);
         % Shared signal
         Z{3}= (cos(alpha)').^2;
         % Hierarchical signal
-        Z{4} = heaviside(linspace(-10,10,N))'; % Step function
+        Z{4} = heaviside(linspace(-10,10,N))'; % Step function      
 end
 
 % Scale and center data

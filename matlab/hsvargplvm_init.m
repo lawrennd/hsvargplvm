@@ -63,7 +63,9 @@ if ~exist('globalOpt')
     %%%%%%%%%%%%%%%%%%%%%%%%%%%   LATENT SPACE %%%%%%%%%%%%%%%%%%%%%%%%%
     % The dimensionality of each latent space layer. If it's a cell array, then
     % it defines the dimensinality of each layer separately and needs to be
-    % in the same size as H.
+    % in the same size as H. !!! Attention: if Q is a cell array, the entry
+    % Q{h} < Q{h-1} ! Otherwise the initialisation will not work...(we'll
+    % have more latent dimensions than outputs)
     defaults.Q = 10;
     
     
@@ -123,5 +125,9 @@ if ~exist('globalOpt')
     
     
     clear('defaults', 'fnames');
-    
+   
+    % Check for inconsistencies
+    if globalOpt.multOutput && ~strcmp(globalOpt.initial_X,'concatenated')
+        warning('MultipleOutputs option is on but the initial latent space is not initialised with concatenation as recommended!')
+    end
 end

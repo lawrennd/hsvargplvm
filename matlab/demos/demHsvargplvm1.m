@@ -4,16 +4,17 @@ rand('seed', 1e5)
 randn('seed', 1e5);
 
 addpath(genpath('../'));
+ %Norm1 difference: 2.490857e-003
+ %Norm2 difference: 1.965647e-003
 
-%clear
-
+H=3;
 N = 10;
 D1 = 4;
 D2 = 5;
 
 Ytr{1} = rand(N,D1);
 Ytr{2} = rand(N,D2);
-Q = 2;
+Q = {5,3,2};
 K = 3;
 
 baseKern = {'linard2','white','bias'};
@@ -33,14 +34,14 @@ end
 
 model = hsvargplvmModelCreate(Ytr, options, globalOpt);
 
-params = hsvargplvmExtractParam(model);
+[params, names] = hsvargplvmExtractParam(model);
 model = hsvargplvmExpandParam(model, params);
 modelInit = model;
 
 
 if exist('skipGradchek') && skipGradchek
-    model = hsvargplvmOptimise(model, true, 20);
+    model = hsvargplvmOptimise(model, true, 5);
 else
-    model = hsvargplvmOptimise(model, true, 20, 'gradcheck', true);
+    model = hsvargplvmOptimise(model, true, 5, 'gradcheck', true);
 end
 

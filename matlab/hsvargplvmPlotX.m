@@ -7,7 +7,7 @@ if nargin < 5 || isempty(theta)
 end
 
 if nargin < 4 || isempty(symb)
-    symb = 'x';
+    symb = '-x';
 end
 
 if nargin < 3

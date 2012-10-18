@@ -4,7 +4,7 @@
 clear; toyType = 'hgplvmSample'; baseKern='rbfardjit'; Q = {4,2}; initSNR = {100, 200};
   initVardistLayers = 1:2; initVardistIters = 100; itNo = 500; demToyHsvargplvm1;
 
-clear; toyType = 'hgplvmSample'; baseKern='rbfardjit'; Q = {4,2}; initSNR = {100, 200}; initial_X = 'concatenated';
+clear; experimentNo = 1; toyType = 'hgplvmSample'; baseKern='rbfardjit'; Q = {4,2}; initSNR = {100, 200}; initial_X = 'concatenated';
   initVardistLayers = 1:2; initVardistIters = 100; itNo = 500; demToyHsvargplvm1;
     % GOOD!!
 
@@ -37,7 +37,7 @@ if ~exist('initVardistIters'), initVardistIters = []; end
 if ~exist('multVargplvm'), multVargplvm = false; end
 
 % That's for the ToyData2 function:
-if ~exist('toyType'), toyType = 'fols'; end % Other options: 'gps'
+if ~exist('toyType'), toyType = ''; end % Other options: 'fols','gps'
 if ~exist('hierSignalStrength'), hierSignalStrength = 1;  end
 if ~exist('noiseLevel'), noiseLevel = 0.05;  end
 if ~exist('numHierDims'), numHierDims = 1;   end
@@ -47,11 +47,15 @@ if ~exist('Ntoy'), Ntoy = 100;           end
 
 hsvargplvm_init;
 
-
-[Ytr, dataSetNames, Z] = hsvargplvmCreateToyData2(toyType,Ntoy,Dtoy,numSharedDims,numHierDims, noiseLevel,hierSignalStrength);
+if exist('Yall')
+    Ytr = Yall;
+else
+    [Ytr, dataSetNames, Z] = hsvargplvmCreateToyData2(toyType,Ntoy,Dtoy,numSharedDims,numHierDims, noiseLevel,hierSignalStrength);
+end
 
 globalOpt.dataSetName = ['toy_' toyType];
 
+%%% SKip this if you want multOutput only in 2nd layer
 % If this option is active, then instead of having one modalities for each
 % signal, we'll have one modality per each dimension of the concatenated
 % signal
@@ -68,12 +72,47 @@ if globalOpt.multOutput
     end
     clear Ynew
 end
-
+%%
 options = hsvargplvmOptions(globalOpt);
 options.optimiser = 'scg2';
 
 
-model = hsvargplvmModelCreate(Ytr, options, globalOpt);
+
+
+
+%--- in case vargplvmEmbed is used for init,, the latent spaces...
+optionsAll = hsvargplvmCreateOptions(Ytr, options, globalOpt);
+initXOptions = cell(1, options.H);
+for h=1:options.H
+    if strcmp(optionsAll.initX, 'vargplvm') | strcmp(optionsAll.initX, 'fgplvm')
+        initXOptions{h}{1} = optionsAll;
+        % DOn't allow the D >> N trick for layers > 1
+        if h~=1
+            if isfield(initXOptions{h}{1}, 'enableDgtN')
+                initXOptions{h}{1}.enableDgtN = false;
+            end
+        end
+        initXOptions{h}{1}.latentDim = optionsAll.Q{h};
+        initXOptions{h}{1}.numActive = optionsAll.K{h}{1};
+        initXOptions{h}{1}.kern = optionsAll.kern{h}{1};
+        initXOptions{h}{1}.initX = 'ppca';
+        initXOptions{h}{1}.initSNR = 90;
+        initXOptions{h}{1}.numActive = 50;
+        initXOptions{h}{2} = 160;
+        initXOptions{h}{3} = 30;
+        if exist('stackedInitVardistIters'),  initXOptions{h}{2} = stackedInitVardistIters;   end
+        if exist('stackedInitIters'), initXOptions{h}{3} = stackedInitIters;   end
+        if exist('stackedInitSNR'), initXOptions{h}{1}.initSNR = stackedInitSNR; end
+        if exist('stackedInitK'), initXOptions{h}{1}.numActive = stackedInitK; end
+    else
+        initXOptions{h} = {};
+    end
+end
+%---
+
+
+model = hsvargplvmModelCreate(Ytr, options, globalOpt, initXOptions);
+
 
 
 params = hsvargplvmExtractParam(model);
@@ -102,6 +141,14 @@ plot(initXB(:,1), initXB(:,2), 'x-');
 
 %%
 model.globalOpt = globalOpt;
-model = hsvargplvmOptimiseModel(model, true, true);
+[model,modelPruned, modelInitVardist] = hsvargplvmOptimiseModel(model, true, true);
 
+% For more iters...
+%modelOld = model;
+%model = hsvargplvmOptimiseModel(model, true, true, [], {0, [1000 1000 1000]});
 
+%%
+%{
+figure; hsvargplvmShowSNR(modelInitVardist);
+figure; hsvargplvmShowScales(model);
+%}

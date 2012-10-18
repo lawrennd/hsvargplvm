@@ -24,3 +24,5 @@ for h=1:model.H
         model.layer{h}.comp{i} = vargplvmPruneModel(model.layer{h}.comp{i}, onlyData);
     end
 end
+
+model.isPruned = true;

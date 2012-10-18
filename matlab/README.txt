@@ -68,7 +68,7 @@ latent nodes in a hierarchy. To summarize, in the full model we can select:
 
 
 
-    * Current implementation of HSVARGPLVM (v. 0.1) -- TODO
+    * First implementation of HSVARGPLVM (v. 0.1) 
     _______________________________________________________________________
     
     In the current implementation of hsvargplvm, we treat the intermediate
@@ -83,6 +83,32 @@ latent nodes in a hierarchy. To summarize, in the full model we can select:
 ___________________________________________________________________________
 ########################## HSVARGPLVM ####################################
 ___________________________________________________________________________
+
+
+_____________________________ ChangeLog
+
+TODO: Make the model generic and allow H = 1 (that would be vargplvm/svargplvm).
+
+* v.0.2.3: Complete (15/9/2012)
+ The hierarchies now are not limited to H=2! Any number of levels
+ is now allowed.
+
+* v.0.2.2: TODO (OK - done): Like v.0.1 but the intermediate layer is Q SEPARATE
+  latent spaces.
+
+* v.0.2.1: Complete, uploaded to SVN 9/9/2012 19:11 (changeSet 2468)
+   Like v.0.1 but the intermediate layer can factorise wrt q.
+   Affected files from previous version: 
+       hsvargplvm_init, hsvargplvmOptions, hsvargplvmModelCreate,
+       hsvargplvmUpdateStats, hsvargplvmLogLikelihood, 
+       hsvargplvmLogLikeGradients
+
+* v.0.1: Complete, uploaded to SVN 8/9/2012 23:45 (changeSet 2467)
+  It's the version where we have only 3 layers 
+  (leaves, 1 intermediate, 1 parent) and the intermediate is a signle space.
+
+  
+
 
 _____________________________ STRUCTURE
 This is the model that implements the hierarchical vargplvm. The general
@@ -158,16 +184,22 @@ way that just fixing beta and using some other mapping kernel.
 _____________________________ Current issues
 
 1) How to also segment X_h, h > 1? So that I can have the multvargplvm
-approach in the intermediate layers?
+approach in the intermediate layers? 
+One way is v.0.2.1 above. Another is v.0.2.2 (not implemented yet).
 2) How to manage the fact that some of the dimensions of X_h are irrelevant
 but nevertheless the upper level inherits all of the space? (hopefully
 the upper level's scales will "understand" and "inherit" the information
-about the irrelevant scales?)
+about the irrelevant scales?), and this is the current solution.
 3) How to handle the fact that the data variance of a model in layer h>1
 always changes (since its data come from a X of the below layers which
 changes)? Does that affect the optimisation of beta of that particular
 layer? SNR should be relatively high and it depends on the variance of
-the data and the value of beta.
+the data and the value of beta. The current solution just allows to set
+the parameter beta for the intermediate layers to a very large value. The
+SNR of course will change during optimisation since the "data" part also
+changes, but the very large value for beta might do the trick. Or we can
+"manually" start by average beta, do a few iters. with beta fixed, then 
+make it bigger according to the new SNR, etc.
 
 
 

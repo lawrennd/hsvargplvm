@@ -1,4 +1,15 @@
-function hmodel = hsvargplvmModelCreate(Ytr, options, globalOpt)
+function hmodel = hsvargplvmModelCreate(Ytr, options, globalOpt, initXOptions)
+
+if nargin < 4
+    % These options are passed to the function that initialises X. If it's
+    % pca or isomap it's empty, but there is also the possibility that e.g.
+    % the model is optimised with stacked vargplvm, so this struct has any
+    % options for vargplvmEmbed (that is, the options structure of
+    % vargplvm)
+    for h=1:globalOpt.H
+        initXOptions{h} = {};
+    end
+end
 
 
 % ################  Fix the structure of the model #################-%
@@ -53,8 +64,7 @@ for h = 1:options.H
         mAll = [mAll m{i}];
     end
     
-    
-    
+
     
     if iscell(options.initX)
         initX = options.initX{h};
@@ -67,7 +77,7 @@ for h = 1:options.H
         if isstr(initX)
             fprintf('# Initialising level %d with %s\n',h, initX)
             initFunc = str2func([initX 'Embed']);
-            curX  = initFunc(mAll, Q);
+            curX  = initFunc(mAll, Q, initXOptions{h}{:});
         end
     else % M > 1
         % Initialise in the svargplvm style
@@ -80,13 +90,13 @@ for h = 1:options.H
         initFunc = str2func([initX 'Embed']);
         if strcmp(initial_X,'concatenated')
             fprintf('# Initialising level %d  with concatenation and %s\n',h, initX)
-            curX  = initFunc(mAll, Q);
+            curX  = initFunc(mAll, Q, initXOptions{h}{:});
         elseif strcmp(initial_X,'separately')
             fprintf('# Initialising level %d separately with %s\n', h,initX)
             Q1 = ceil(Q / M);
             curX = [];
             for i = 1:M
-                curX = [curX initFunc(m{i}, Q1)];
+                curX = [curX initFunc(m{i}, Q1, initXOptions{h}{:})];
             end
             Q = Q1 * M;
             options.Q{h} = Q;
@@ -107,7 +117,12 @@ for h = 1:options.H
         end
                
         opt = options;
-        
+        % DOn't allow the D >> N trick for layers > 1
+        if h~=1
+            if isfield(opt, 'enableDgtN')
+                opt.enableDgtN = false;
+            end
+        end
         opt.latentDim = Q;
         opt.numActive = K;
         opt.initX = curX;
@@ -217,3 +232,4 @@ hmodel.info = [hmodel.info sprintf('\n The top layer is the parent latent space.
 hmodel.H = options.H;
 hmodel.options = options;
 hmodel.type = 'hsvargplvm';
+hmodel.parallel = globalOpt.enableParallelism;

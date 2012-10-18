@@ -88,6 +88,9 @@ if globalOpt.multOutput
     meanRedundantDimB = mean(YB(:, vB));
     dmsB = setdiff(1:size(YB,2), vB);
     YB = YB(:,dmsB);
+    if ~isempty(vA) || ~isempty(vB)
+        warning('Removed some dimensions with tiny variance!')
+    end
     %---
 end
 
@@ -95,22 +98,42 @@ switch dataMerging
     case 'vercat'
         Yall = [YA ; YB]; %  Yall{1}=YA; Yall{2}=YB; cannot work because they have different number of points
         % Subsample!!
-        Yall = {Yall(1:2:end,:)};
+        if ~(exist('subsample') && ~subsample)
+            Yall = {Yall(1:2:end,:)};
+        else
+            Yall = {Yall};
+        end
     case 'YA'
         Yall = {YA};
     case 'YB';
         Yall = {YB};
-    case 'horalign'
+    case 'horalignSep'
         Yall{1} = YA(1:size(YB,1),:); % Assumes YA bigger than YB
         Yall{2} = YB;
+    case 'horalignCat'
+        Yall{1} = [YA(1:size(YB,1),:) YB]; % Assumes YA bigger than YB
 end
         
 %Yall = {Yall};
 
+if globalOpt.multOutput
+    globalOpt.initial_X = 'concatenated';
+    if length(Yall) > 1
+        error('cannot do mult. output with shared latent spaces')
+    end
+    disp(['MultOutput status is: ' num2str(globalOpt.multOutput) ])
+    Ytmp = Yall{1};
+    Yall = cell(1,size(Ytmp,2));
+    for d=1:size(Ytmp,2)
+        Yall{d} = Ytmp(:,d);
+    end
+    clear Ytmp
+end
 
 options = hsvargplvmOptions(globalOpt);
 options.optimiser = 'scg2';
 
+%%
 model = hsvargplvmModelCreate(Yall, options, globalOpt);
 
 
@@ -121,14 +144,25 @@ modelInit = model;
 %%
 model.globalOpt = globalOpt; 
 
-model = hsvargplvmOptimiseModel(model, true, true);
+[model,modelPruned,modelInitVardist] = hsvargplvmOptimiseModel(model, true, true);
 
 return %%%%%%%%%%%%
-%% 
-% Now call:
-%%%%%%%%%%%%%%%%%%%%%%% VISUALISATION %%%%%%%%%%%%%%%%%%%%%%%%
 
-%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%% VISUALISATION %%%%%%%%%%%%%%%%%%%%%%%%
+% Now call:
+
+%% %--- Scales
+if globalOpt.multOutput
+    close all
+    SNR = hsvargplvmShowSNR(model,[],false);
+    exclDim = find(SNR{1} < 6); % Exclude from the computations the dimensions that were learned with very low SNR
+    [clu, clu2, clu3]= hsvargplvmClusterScales(model.layer{1}, 5,'skel59dim',exclDim);
+    scales = hsvargplvmRetainedScales(model);
+end
+
+%% % --- Skeleton
 m = 1;
 
 % First, sample from the intermediate layer

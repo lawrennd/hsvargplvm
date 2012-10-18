@@ -41,7 +41,12 @@ for h=2:model.H
     end
 end
 
+if isfield(model, 'isPruned')
+    model.isPruned = false;
+end
 
+params = hsvargplvmExtractParam(model);
+model = hsvargplvmExpandParam(model, params);
 
 end
 

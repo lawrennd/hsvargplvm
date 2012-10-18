@@ -15,11 +15,6 @@ function hsvargplvmClassVisualise(call)
 
 global visualiseInfo
 
-% In which output modality do we predict? If there is only one modality,
-% this should be set to either "-1" or 1:model.layer{1}.M
-visIndex = visualiseInfo.model.vis.index;
-% From which input layer do we predict all the way until the leaves?
-visLayer = visualiseInfo.model.vis.layer;
 
 switch call
  case 'click'
@@ -55,9 +50,9 @@ switch call
       visIndex = visualiseInfo.model.vis.index;
       visLayer = visualiseInfo.model.vis.layer;
       if visualiseInfo.showVariance
-        [mu, varsigma] = fhandle(visualiseInfo.model, visualiseInfo.latentPos, [], visLayer, 1, visIndex);
+        [mu, varsigma] = fhandle(visualiseInfo.model, visualiseInfo.latentPos, [], visLayer,visIndex);
       else
-          mu = fhandle(visualiseInfo.model, visualiseInfo.latentPos, [], visLayer, 1, visIndex);
+          mu = fhandle(visualiseInfo.model, visualiseInfo.latentPos, [], visLayer,visIndex);
           varsigma = zeros(size(mu));
       end
       if isfield(visualiseInfo.model, 'noise')
@@ -85,7 +80,7 @@ switch call
   visualiseInfo.latentPos(visualiseInfo.dim2) = y;
   set(visualiseInfo.latentHandle, 'xdata', x, 'ydata', y);
   fhandle = str2func([visualiseInfo.model.type 'PosteriorMeanVar']);
-  [mu, varsigma] = fhandle(visualiseInfo.model, visualiseInfo.latentPos, [], visLayer, 1, visIndex);
+  [mu, varsigma] = fhandle(visualiseInfo.model, visualiseInfo.latentPos);
   if isfield(visualiseInfo.model, 'noise')
     Y = noiseOut(visualiseInfo.model.noise, mu, varsigma);
   else
@@ -116,9 +111,9 @@ switch call
   end
   fhandle = str2func([visualiseInfo.model.type 'PosteriorMeanVar']);
   if visualiseInfo.showVariance
-    [mu, varsigma] = fhandle(visualiseInfo.model, visualiseInfo.latentPos, [], visLayer, 1, visIndex);
+    [mu, varsigma] = fhandle(visualiseInfo.model, visualiseInfo.latentPos);
   else
-      mu = fhandle(visualiseInfo.model, visualiseInfo.latentPos, [], visLayer, 1, visIndex);
+      mu = fhandle(visualiseInfo.model, visualiseInfo.latentPos);
       varsigma = zeros(size(mu));
   end
   if isfield(visualiseInfo.model, 'noise')

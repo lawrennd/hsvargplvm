@@ -1,4 +1,4 @@
-function hsvargplvmShowSkel(model)
+function hsvargplvmShowSkel2(model)
 
 
 baseDir = datasetsDirectory;
@@ -17,36 +17,28 @@ Yall{1} = YA;
 Yall{2} = YB;
 
 %%
-m = 2;
+
+m=2;
+
 figure
-% First, sample from the intermediate layer
-model2 = model.layer{1}.comp{m};
-model2.vardist = model.layer{1}.vardist;
-model2.X = model2.vardist.means;
-%channelsA = skelGetChannels(Yall{m});
-dataType = 'skel';
-lvmVisualiseGeneral(model2, [], [dataType 'Visualise'], [dataType 'Modify'],false, skel{m});
-ylim([-18 18])
-%%
-figure
-m = 2;
 dataType = 'skel';
 % Now from the parent
 modelP = model;
 modelP.type = 'hsvargplvm';
-modelP.vardist = model.layer{2}.vardist;
+modelP.vis.index=m;
+modelP.vis.layer = 1; % The layer we are visualising FROM
+
+modelP.vardist = model.layer{modelP.vis.layer}.vardist;
 modelP.X = modelP.vardist.means;
 modelP.q = size(modelP.X,2);
 
-modelP.d = size(Yall{m},2);
-modelP.y = Yall{m};
-modelP.vis.index=m;
-modelP.vis.layer = 1;
+modelP.d = model.layer{model.H}.M;
+%YY = multvargplvmJoinY(model.layer{1});
+%Ynew = zeros(size(YY,1), size(YY,2)+length(vA));
+%Ynew(:, dms) = YY;
+modelP.y = Yall{m}; % Ytochannels(Ynew);
+%modelP.Ytochannels = true; 
+
+
 lvmVisualiseGeneral(modelP, [], [dataType 'Visualise'], [dataType 'Modify'],false, skel{m});
 ylim([-20, 30]);
-% USE e.g. ylim([-18 8]) to set the axis right if needed
-end
-
-
-
-
