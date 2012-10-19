@@ -7,7 +7,7 @@ addpath(genpath('../'));
  %Norm1 difference: 2.490857e-003
  %Norm2 difference: 1.965647e-003
 
-H=3;
+if ~exist('H'), H=3; end
 N = 10;
 D1 = 4;
 D2 = 5;

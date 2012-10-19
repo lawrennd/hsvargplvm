@@ -3,6 +3,10 @@ function model = hsvargplvmUpdateStats(model)
 jitter = 1e-6;
 
 for h=1:model.H
+    if h==model.H & isfield(model.layer{h}, 'dynamics') & ~isempty(model.layer{h}.dynamics)
+        model.layer{model.H} = vargplvmDynamicsUpdateStats(model.layer{model.H});
+    end
+        
     for m=1:model.layer{h}.M
         if h~=1 % Not leaf
             % This is an intermediate node. Its data change in every

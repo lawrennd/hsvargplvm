@@ -12,29 +12,19 @@ g_leaves = hsvargplvmLogLikeGradientsLeaves(model.layer{1});
 %%%%%%%%%%
 g_leaves(1:model.layer{1}.vardist.nParams) = g_leaves(1:model.layer{1}.vardist.nParams) + g_sharedLeaves;
 
-g_entropies = hsvargplvmLogLikeGradientsEntropies(model.layer{1});
+g_entropies = hsvargplvmLogLikeGradientsEntropies(model);
 
 % This is the gradient of the entropies (only affects covars). It's just -0.5*I
 N = model.layer{1}.N;
 Q1 = model.layer{1}.q;
 %g_entropies = -0.5.*g_leaves(N*Q1+1:model.layer{1}.vardist.nParams);
 g_leaves(N*Q1+1:model.layer{1}.vardist.nParams) = g_leaves(N*Q1+1:model.layer{1}.vardist.nParams) + g_entropies;
-
-% Augment the derivatives of the vardistr. covars of each layer with the derivs.
-% of the entropies (the leaves are done separately)
-% Remember g_nodes has derivs for h=2 and upwards!!!
-offset=1;
 for h=2:model.H-1
-    % g_entropies is the same for all models (constant) or changes only if
-    % each layer has different Q.
-    g_entropiesCur = hsvargplvmLogLikeGradientsEntropies(model.layer{h});
-    % Find the indices for the var. covariances %%%%%%%%%% THIS IS WRONG
-    NQ=N*model.layer{h}.q; % size of var. means (and var covars)
-    % Inds of the vardistr.covars of the prev. node
-    indStart = offset+NQ;
-    indEnd = indStart + NQ - 1;
-    g_nodes(indStart:indEnd)=g_nodes(indStart:indEnd)+g_entropiesCur;
-    offset = offset + model.layer{h}.nParams;
+    N = model.layer{1}.N;
+    Q1 = model.layer{1}.q;
+    % g_entropies is the same for all models (constant)
+    % TODO!!!
+    % g_nodes(indicesForCovarsInThisNode)=g_nodes(indicesForCovarsInThisNode)+g_entropies;
 end
 g = [g_leaves  g_nodes];
 
@@ -45,13 +35,14 @@ dynUsed = (isfield(model.layer{end},'dynamics') && ~isempty(model.layer{end}.dyn
 % the svargplvm function including the KL part.
 if ~dynUsed
     % Amend the derivatives of the parent's var.distr. with the terms coming
-    % from the KL
+    % from the KL.
     g_parent = hsvargplvmLogLikeGradientsParent(model.layer{model.H});
     startInd = model.nParams-model.layer{model.H}.nParams+1;
     endInd = startInd + model.layer{model.H}.vardist.nParams-1;
     g(startInd:endInd) = g(startInd:endInd) + g_parent;
+else
+    warning('This function has not been tested very well when there are dynamics!!!')
 end
-
 
 end
 
@@ -78,7 +69,6 @@ end
 g = [gShared g];
 end
 
-
 % g: The gradients for the "likelihood"+vardist part (ie no entropies, no
 % KL) of all nodes
 % gSharedLeaves: The gradients for the vardist part of the variational
@@ -90,35 +80,34 @@ function [g gSharedLeaves] = hsvargplvmLogLikeGradientsNodes(model)
 g=[]; % Final derivative
 gSharedLeavesMeans = zeros(model.layer{1}.N, model.layer{1}.q);
 gSharedLeavesCovars = zeros(model.layer{1}.N, model.layer{1}.q);
+
 for h=2:model.H
     dynUsed = false;
     if (h==model.H && (isfield(model.layer{h},'dynamics') && ~isempty(model.layer{h}.dynamics)));
         dynUsed = true;
     end
     
-    g_sharedPrevNode = zeros(1,model.layer{h-1}.vardist.nParams);
-    gSharedNodeMeans = zeros(model.layer{h-1}.N, model.layer{h-1}.q);
-    gSharedNodeCovars = zeros(model.layer{h-1}.N, model.layer{h-1}.q);
-
     g_h = []; % Derivative wrt params of layer h
-    
     model_h = model.layer{h};
     model_hVardist = model.layer{h}.vardist;
     model_hComp = model.layer{h}.comp;
+    %model_hprev = model.layer{h-1};
+    model_hprevVardistMeans = model.layer{h-1}.vardist.means;
+    model_hprevVardistCovars = model.layer{h-1}.vardist.covars;
+    %gShared = zeros(1, model.layer{h}.vardist.nParams); % Derivatives of the var. distr. of layer h
     g_i = cell(1, model_h.M);
-
-    % If we don't have dynamics, then we compute the gradients only of the
-    % likelihood part, and then g_parent (in the main function of this
-    % file) is calculated and amends with the KL part. However, if dynamics
-    % kernel is used, then the gradients of the var. params are using the
-    % likelihood and KL part in a mixed way and have to be computed
-    % together. This is taken care of in the svargplvmLogLikeGradients
-    % function, since the upper layer is, basically, an svargplvm. In that
-    % case, we won't have to add the g_parent, as we will do everything
-    % here at once.
+    latInd = cell(1, model_h.M);
+    gSharedLeavesMeansPart = cell(1, model_h.M);
+    gSharedLeavesCovarsPart = cell(1, model_h.M);
+    for i=1:model_h.M
+        latInd{i} = 1:model.layer{h-1}.vardist.latentDimension;
+    end
+    
     if ~dynUsed
-        gShared = zeros(1, model.layer{h}.vardist.nParams); % Derivatives of the var. distr. of layer h
-        parfor i=1:model.layer{h}.M % Derivative of the likelihood term of the m-th model of layer h
+        gShared = 0;
+        
+        parfor i=1:model_h.M % Derivative of the likelihood term of the m-th model of layer h
+            
             model_hComp{i}.vardist = model_hVardist;
             model_hComp{i}.onlyLikelihood = true;
             
@@ -127,14 +116,15 @@ for h=2:model.H
             g_i{i} = vargplvmLogLikeGradients(model_hComp{i});
             
             % Now add the derivatives for the shared parameters (vardist)
-            gShared = gShared + g_i{i}(1:model_hVardist.nParams);
+            gSharedPart{i} = g_i{i}(1:model_hVardist.nParams);
             
             % g_i will now hold all the non-vardist. derivatives (the rest are
             % taken care of in gShared)
             g_i{i} = g_i{i}((model_hVardist.nParams+1):end);
+            gShared = gShared + gSharedPart{i};
             
-        end % for m...
-        for  i=1:model.layer{h}.M
+        end
+        for i=1:model_h.M
             g_h = [g_h g_i{i}];
         end
         g_h = [gShared g_h];
@@ -146,6 +136,10 @@ for h=2:model.H
         end
         g_h = svargplvmLogLikeGradients(model.layer{h});
     end
+    
+    g_sharedPrevNode = zeros(1,model.layer{h-1}.vardist.nParams);
+    gSharedNodeMeans = zeros(model.layer{h-1}.N, model.layer{h-1}.q);
+    gSharedNodeCovars = zeros(model.layer{h-1}.N, model.layer{h-1}.q);
     
     % Find the quantity that needs to be added to the PREVIOUS gShared.
     % This quantity is either the 'gSharedLeaves' which is returned and
@@ -226,7 +220,6 @@ for h=2:model.H
         %--
     end
     
-    
     % (for H > 2)
     if h > 2
         % The gShared of the PREVIOUS iteration needs to be augmented
@@ -238,15 +231,14 @@ for h=2:model.H
     
     % Now we can add the g_h of the current iteration
     g = [g g_h];
-end % for h...
+
+end
 gSharedLeaves = [gSharedLeavesMeans(:)' gSharedLeavesCovars(:)'];
 end
 
-% The entropies of all variational distributions q(X^h) (this does not
-% include the parent var. distr q(Z), for which we need to instead
-% calculate a KL quantity.
+
 function g = hsvargplvmLogLikeGradientsEntropies(model)
-g=-0.5*ones(1,model.N * model.q);
+g=-0.5*ones(1,model.layer{1}.N * model.layer{1}.q);
 end
 
 function gVar = hsvargplvmLogLikeGradientsParent(modelParent)

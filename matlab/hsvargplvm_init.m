@@ -61,6 +61,7 @@ if ~exist('globalOpt')
     
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%   LATENT SPACE %%%%%%%%%%%%%%%%%%%%%%%%%
+       
     % The dimensionality of each latent space layer. If it's a cell array, then
     % it defines the dimensinality of each layer separately and needs to be
     % in the same size as H. !!! Attention: if Q is a cell array, the entry

@@ -256,7 +256,8 @@ X2 = X2 - 5.*repmat([1 0], size(X2,1), 1);
         % Shared signal
         Z{3}= (cos(alpha)').^2;
         % Hierarchical signal
-        Z{4} = heaviside(linspace(-10,10,N))'; % Step function      
+        %Z{4} = heaviside(linspace(-10,10,N))'; % Step function      
+        Z{4} = 0.2*(linspace(-10,10,N).^2)'; % Wide parabola  
 end
 
 % Scale and center data

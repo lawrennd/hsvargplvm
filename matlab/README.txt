@@ -51,8 +51,11 @@ latent nodes in a hierarchy. To summarize, in the full model we can select:
 
     * PARAMETERS for the actual MODEL:
     _______________________________________________________________________
-     - The prior distribution of the parent, p(X_H). For the moment, this
-       is taken to be a standard normal.
+     - The prior distribution of the parent, p(X_H). From version 1.0
+       onwards, this prior can also be "dynamical", so that the parameters
+       of the top layer are the reparametrized barmu, lambda and dynKern
+       parameters. The constrain doesn't have to be dynamics (temporal), it
+       can be anything, even given inputs so as to do "supervised learing".
      - The mappings F_h, h=1:H between the nodes (see below) => 
                  kernel parameters and inducing points for each node
      - variational parameters for each node.
@@ -88,6 +91,13 @@ ___________________________________________________________________________
 _____________________________ ChangeLog
 
 TODO: Make the model generic and allow H = 1 (that would be vargplvm/svargplvm).
+
+* v.1.0: Compete (19/10/2012)
+ Allow "dynamical" priors for the parent node. "Dynamical" means that it
+ follows the framework of Damianou et al. NIPS 2011, but the actual input
+ of the parent latent function does not need to be time, it can be anything
+ or even given inputs, something which leads to deep GP regression.
+ In this version I also fixed some bugs in the parallel code.
 
 * v.0.2.3: Complete (15/9/2012)
  The hierarchies now are not limited to H=2! Any number of levels

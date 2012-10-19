@@ -11,8 +11,15 @@ startVal = 0;
 endVal = 0;
 for h=1:model.H %%% FOR EACH LAYER
     startVal = endVal + 1;
-    endVal = endVal + model.layer{h}.vardist.nParams;
-    model.layer{h}.vardist = modelExpandParam(model.layer{h}.vardist, params(startVal:endVal)); 
+    
+    if h==model.H & isfield(model.layer{h}, 'dynamics') & ~isempty(model.layer{h}.dynamics)
+        endVal = endVal + model.layer{h}.dynamics.nParams;
+        model.layer{h}.dynamics = modelExpandParam(model.layer{h}.dynamics, params(startVal:endVal));
+    else
+        endVal = endVal + model.layer{h}.vardist.nParams;
+        model.layer{h}.vardist = modelExpandParam(model.layer{h}.vardist, params(startVal:endVal));
+    end
+    
     totLayerParams = 0;
     for m = 1:model.layer{h}.M  %%% FOR EACH SUB-MODEL in the same layer
         endValPrev = endVal;
@@ -56,5 +63,5 @@ for h=1:model.H %%% FOR EACH LAYER
 end
 model.nParams = endVal;
 
-%%% TODO
+% Force kernel computations etc
 model = hsvargplvmUpdateStats(model);

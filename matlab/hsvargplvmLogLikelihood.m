@@ -45,13 +45,19 @@ end
 
 end
 
-% The KL[q(X_H) || p(X_H)]
+% The -KL[q(X_H) || p(X_H)]
 function F_parent = hsvargplvmLogLikelihoodParent(modelParent)
 %if modelParent.M > 1
 %    warning('Not implemented multiple models in parent node yet')
 %end
 % Copied from vargplvmLogLikelihood:
-varmeans = sum(sum(modelParent.vardist.means.*modelParent.vardist.means));
-varcovs = sum(sum(modelParent.vardist.covars - log(modelParent.vardist.covars)));
-F_parent = -0.5*(varmeans + varcovs) + 0.5*modelParent.q*modelParent.N;
+if isfield(modelParent, 'dynamics') & ~isempty(modelParent.dynamics)
+        % A dynamics model is being used.
+        F_parent = modelVarPriorBound(modelParent);
+        F_parent = F_parent + 0.5*modelParent.q*modelParent.N; %%% The constant term!!
+else
+    varmeans = sum(sum(modelParent.vardist.means.*modelParent.vardist.means));
+    varcovs = sum(sum(modelParent.vardist.covars - log(modelParent.vardist.covars)));
+    F_parent = -0.5*(varmeans + varcovs) + 0.5*modelParent.q*modelParent.N;
+end
 end
