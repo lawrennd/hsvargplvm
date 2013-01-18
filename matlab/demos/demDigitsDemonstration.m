@@ -1,7 +1,7 @@
-%demUspsFINAL.m
 clear
 close all
 
+% Experiment number 19 is the deepest architecture (5 layers)
 expNo = 19; % Other experiments: 10, 16
 
 
@@ -77,7 +77,8 @@ end
 
 model = hsvargplvmRestorePrunedModel(model, Ytr);
 
-%% 
+%% !!!!!!
+% ---- This seems to have broken... check next code segment which does the same thing (sampling) but automatically
 % From the parent or intermediate with outputs being in the 1st layer
 layer = 2;
 
@@ -101,9 +102,14 @@ lvmVisualiseGeneral(modelP,  [], 'imageVisualise', 'imageModify', false,[16 16],
 figure; hsvargplvmShowScales(model);
 
 %% Sample automatically
+%- These values are model-specific (check scales).
+% Sample from all layers but be careful to sample from a dimension which is
+% switched on...
 layer = 5;
 startingPoint = 51;
 dim=6;
+%---
+
 %hsvargplvmSampleLayer(model, lInp, lOut, ind,  dim,X, startingPoint)
 [X,mu] = hsvargplvmSampleLayer(model,layer,1,-1,dim,[],startingPoint);
 h=figure;
@@ -131,7 +137,8 @@ end
 imagesc(reshape(var(mu),16,16)'); title('variance samples')
 
 
-%% Do the above for all layers, all dims...
+%% Do the above for all layers, all dims and show the variance in the end (this can
+% be a *bit* misleading, if the colormaps are not normalised...)
 close all
 scrsz = get(0,'ScreenSize');
 figure('Position',[scrsz(3)/4.86 scrsz(4)/1 1.2*scrsz(3)/1.6457 0.6*scrsz(4)/3.4682])
@@ -168,7 +175,8 @@ figure('Position',[0.01*scrsz(3) 1.5*scrsz(4)/10 0.17*scrsz(3) 0.5*scrsz(4)])
 hsvargplvmShowScales(model)
 
 
-%% NN errors:
+%% NN errors: (what matters mainly is the error on the top layer)
+
 for h=1:model.H
     % order wrt to the inputScales
     curModel = model.layer{h}.comp{1};
@@ -186,3 +194,35 @@ for h=1:model.H
     lvmScatterPlot(mm2, lbls,ax); title(['Layer ' num2str(h) ' (errors:' num2str(errors) ')'])
     fprintf('# Vargplvm errors in the [%d-D | 2-D] projection: [%d | %d]\n', QQ,errors, errors2)
 end
+
+
+
+
+%% Visualise the latent space with the images
+
+close all
+h = model.H;
+
+curModel = model.layer{h}.comp{1};
+if h ~= 1
+    curModel.y = model.layer{h-1}.vardist.means;
+end
+curModel.vardist = model.layer{h}.vardist;
+mm2 = vargplvmReduceModel2(curModel,2);
+errors2 = fgplvmNearestNeighbour(mm2, lbls);
+
+
+
+dataType = 'image';
+varargs{1} = [16 16];
+varargs{2} = 1;
+varargs{3} = 1;
+varargs{4} = 1;
+
+visualiseFunction = 'imageVisualise';
+axesWidth = 0.03;
+Y = Ytr{1};
+
+lvmScatterPlot(mm2, lbls);
+% 3rd argument: if we remove overlaps
+figure; hsvargplvmStaticImageVisualise(mm2, Y, false, [dataType 'Visualise'], axesWidth, varargs{:});
