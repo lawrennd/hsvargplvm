@@ -2,7 +2,7 @@
 clear
 close all
 
-expNo = 19; % Other experiments: 10, 16,18
+expNo = 19; % Other experiments: 10, 16
 
 
 
