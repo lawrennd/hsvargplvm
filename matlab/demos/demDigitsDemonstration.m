@@ -77,9 +77,13 @@ end
 
 model = hsvargplvmRestorePrunedModel(model, Ytr);
 
+figure; hsvargplvmShowScales(model);
+
 %% !!!!!!
-% ---- This seems to have broken... check next code segment which does the same thing (sampling) but automatically
+% ---- The following (between %{ and %} ) 
+% seems to have broken... check next code segment which does the same thing (sampling) but automatically
 % From the parent or intermediate with outputs being in the 1st layer
+%{
 layer = 2;
 
 modelP = model;
@@ -99,46 +103,60 @@ modelP.vis.index=-1;
 modelP.vis.layer = layer;
 lvmVisualiseGeneral(modelP,  [], 'imageVisualise', 'imageModify', false,[16 16], 0,0,1);
 %model.comp{v}, [], 'imageVisualise', 'imageModify', [height width], 0,0,1);
-figure; hsvargplvmShowScales(model);
+%}
 
 %% Sample automatically
 %- These values are model-specific (check scales).
 % Sample from all layers but be careful to sample from a dimension which is
 % switched on...
-layer = 5;
-startingPoint = 51;
-dim=6;
+% !!! The samples are obtained by sampling a bit before the minimum X and a
+% bit after the maximum, so there might be a bit of "nonesense" pictures in
+% the beginning and end (when sampling by hand we don't have this problem)
+% Layers to try: this is an example for a 5-deep structure
+layers = [1 2 5 5];
+% The following helps to see what point is which digit
+%imagesc(reshape(Ytr{1}(i,:), 16,16))
+% The corresponding "starting points" to sampel from
+startingPoint = [1 79 51 51];
+% The corresponding dimensions to sample from (check scales for specific
+% layers)
+dim = [2 8 5 6];
 %---
 
-%hsvargplvmSampleLayer(model, lInp, lOut, ind,  dim,X, startingPoint)
-[X,mu] = hsvargplvmSampleLayer(model,layer,1,-1,dim,[],startingPoint);
-h=figure;
-%pause
-
-%root = ['../diagrams/usps/sampleL' num2str(layer) 'Dim' num2str(dim) 'StPt' num2str(startingPoint)];
- root = []; % Comment to SAVE
-if ~isempty(root)
-    mkdir(root) %%%%
-end
-for i=1:size(mu,1)
-    imagesc(reshape(mu(i,:),16,16)'), colormap('gray')
-    truesize(h,[100 100])
-    axis off
+for j = 1:length(layers)
+    disp('Press any key to continue...')
+    pause
+    fprintf('# Sampling from layer %d, dimension %d\n', layers(j), dim(j))
+    layer = layers(j);
+    %hsvargplvmSampleLayer(model, lInp, lOut, ind,  dim,X, startingPoint)
+    [X,mu] = hsvargplvmSampleLayer(model,layer,1,-1,dim(j),[],startingPoint(j));
+    h=figure;
+    %pause
+    
+    %root = ['../diagrams/usps/sampleL' num2str(layer) 'Dim' num2str(dim) 'StPt' num2str(startingPoint)];
+    root = []; % Comment to SAVE
     if ~isempty(root)
-        fileName = [root filesep num2str(i)];
-        print('-dpdf', [fileName '.pdf']);
-        print('-dpng', [fileName '.png']);
-        fprintf('.')
-    else
-        pause(0.01)
-        %pause
+        mkdir(root) %%%%
     end
+    for i=1:size(mu,1)
+        imagesc(reshape(mu(i,:),16,16)'), colormap('gray')
+        truesize(h,[100 100])
+        axis off
+        if ~isempty(root)
+            fileName = [root filesep num2str(i)];
+            print('-dpdf', [fileName '.pdf']);
+            print('-dpng', [fileName '.png']);
+            fprintf('.')
+        else
+            pause(0.01)
+            %pause
+        end
+    end
+    imagesc(reshape(var(mu),16,16)'); title('variance samples')
 end
-imagesc(reshape(var(mu),16,16)'); title('variance samples')
-
-
 %% Do the above for all layers, all dims and show the variance in the end (this can
-% be a *bit* misleading, if the colormaps are not normalised...)
+% be a *bit* misleading, if the colormaps are not normalised... but helps
+% with the above demo, ie identifying which layers/dims are worth sampling)
 close all
 scrsz = get(0,'ScreenSize');
 figure('Position',[scrsz(3)/4.86 scrsz(4)/1 1.2*scrsz(3)/1.6457 0.6*scrsz(4)/3.4682])
@@ -176,7 +194,7 @@ hsvargplvmShowScales(model)
 
 
 %% NN errors: (what matters mainly is the error on the top layer)
-
+figure
 for h=1:model.H
     % order wrt to the inputScales
     curModel = model.layer{h}.comp{1};
