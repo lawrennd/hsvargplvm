@@ -95,7 +95,7 @@ modelP.vis.index=-1;
 modelP.vis.layer = layer;
 lvmVisualiseGeneral(modelP,  [], 'imageVisualise', 'imageModify', false,[16 16], 0,0,1);
 %model.comp{v}, [], 'imageVisualise', 'imageModify', [height width], 0,0,1);
-%figure; hsvargplvmShowScales(model);
+figure; hsvargplvmShowScales(model);
 
 %% Sample automatically
 layer = 5;
@@ -106,8 +106,8 @@ dim=6;
 h=figure;
 %pause
 
-root = ['../diagrams/usps/sampleL' num2str(layer) 'Dim' num2str(dim) 'StPt' num2str(startingPoint)];
-% root = []; % Comment to SAVE
+%root = ['../diagrams/usps/sampleL' num2str(layer) 'Dim' num2str(dim) 'StPt' num2str(startingPoint)];
+ root = []; % Comment to SAVE
 if ~isempty(root)
     mkdir(root) %%%%
 end
