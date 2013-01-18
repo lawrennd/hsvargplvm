@@ -1,11 +1,14 @@
 %demUspsFINAL.m
-expNo = 19; % Other experiments: 10, 16,18,19
+clear
+close all
+
+expNo = 19; % Other experiments: 10, 16,18
 
 
 
-load(['matFiles/demUsps3ClassHsvargplvm' num2str(expNo)]); % also: exp. 16,18,19. 19 is the best
+load(['matFiles/demUsps3ClassHsvargplvm' num2str(expNo)]); 
 dataMerge = 'vercat2';
-% <Load data from demUsps> .....
+
 randn('seed', 1e5);
 rand('seed', 1e5);
 
