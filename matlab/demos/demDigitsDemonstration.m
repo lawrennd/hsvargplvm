@@ -77,7 +77,7 @@ end
 
 model = hsvargplvmRestorePrunedModel(model, Ytr);
 
-
+%% 
 % From the parent or intermediate with outputs being in the 1st layer
 layer = 2;
 
@@ -186,34 +186,3 @@ for h=1:model.H
     lvmScatterPlot(mm2, lbls,ax); title(['Layer ' num2str(h) ' (errors:' num2str(errors) ')'])
     fprintf('# Vargplvm errors in the [%d-D | 2-D] projection: [%d | %d]\n', QQ,errors, errors2)
 end
-
-
-
-
-%% Visualise the latent space with the images
-close all
-h = 1;
-
-curModel = model.layer{h}.comp{1};
-if h ~= 1
-    curModel.y = model.layer{h-1}.vardist.means;
-end
-curModel.vardist = model.layer{h}.vardist;
-mm2 = vargplvmReduceModel2(curModel,2);
-errors2 = fgplvmNearestNeighbour(mm2, lbls);
-
-
-
-dataType = 'image';
-varargs{1} = [16 16];
-varargs{2} = 1;
-varargs{3} = 1;
-varargs{4} = 1;
-
-visualiseFunction = 'imageVisualise';
-axesWidth = 0.03;
-Y = Ytr{1};
-
-lvmScatterPlot(mm2, lbls);
-% 3rd argument: if we remove overlaps
-figure; hsvargplvmStaticImageVisualise(mm2, Y, false, [dataType 'Visualise'], axesWidth, varargs{:});
