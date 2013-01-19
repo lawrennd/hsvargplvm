@@ -26,7 +26,9 @@ figure; hsvargplvmShowScales(model);
 % interesting... Here's a suggestion for the 5-layer model (experiment number 19)
 % (one starting point for each layer)..
 
-fprintf('#--- Sampling the latent space manually.\n');
+disp('#--- Sampling the latent space manually.');
+disp('    (If samples do not look like the ones of the next part -automatic sampling-')
+disp('     check that this demo sees the lvmVisualise* funcitons of mltools)')
 reply = input('# Do you want to skip this part? Y/N [N]: ', 's');
 if isempty(reply)
     reply = 'N';
