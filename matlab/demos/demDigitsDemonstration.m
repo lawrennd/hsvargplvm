@@ -4,106 +4,75 @@ close all
 % Experiment number 19 is the deepest architecture (5 layers)
 expNo = 19; % Other experiments: 10, 16
 
-
-
-load(['matFiles/demUsps3ClassHsvargplvm' num2str(expNo)]); 
+load(['matFiles/demUsps3ClassHsvargplvm' num2str(expNo)]);
 dataMerge = 'vercat2';
 
 randn('seed', 1e5);
 rand('seed', 1e5);
 
-if ~exist('experimentNo'), experimentNo = 404; end
-if ~exist('initial_X'), initial_X = 'separately'; end
-if ~exist('baseKern'), baseKern = {'linard2','white','bias'}; end
-if ~exist('itNo'), itNo = 500; end
-if ~exist('initVardistIters'), initVardistIters = []; end
-if ~exist('multVargplvm'), multVargplvm = false; end
+demDigitsDemonstrationInit;
 
-% That's for the ToyData2 function:
-if ~exist('toyType'), toyType = 'fols'; end % Other options: 'gps'
-if ~exist('hierSignalStrength'), hierSignalStrength = 1;  end
-if ~exist('noiseLevel'), noiseLevel = 0.05;  end
-if ~exist('numHierDims'), numHierDims = 1;   end
-if ~exist('numSharedDims'), numSharedDims = 5; end
-if ~exist('Dtoy'), Dtoy = 10;            end
-if ~exist('Ntoy'), Ntoy = 100;           end
-
-hsvargplvm_init;
-
-Y=lvmLoadData('usps');
-
-globalOpt.dataSetName = 'usps';
-
-switch dataMerge
-    case 'modalities'
-        YA = Y(1:100,:); % 0
-        YB = Y(5001:5100,:); % 6
-        Ytr{1} = YA;
-        Ytr{2} = YB;
-    case 'vercat'
-        YA = Y(100:150,:); % 0
-        YB = Y(5000:5050,:); % 6
-        Ytr{1} = [YA; YB];
-    case 'vercatBig'
-        YA = Y(1:70,:);   NA = size(YA,1);% 0
-        YB = Y(5001:5070,:); NB = size(YB,1); % 6
-        Ytr{1} = [YA; YB];
-        lbls = zeros(size(Ytr{1},1),2);
-        lbls(1:NA,1)=1;
-        lbls(NA+1:end,2)=1;
-    case 'vercat2'
-        YA = Y(1:50,:);  NA = size(YA,1);% 0
-        YB = Y(5001:5050,:);  NB = size(YB,1); % 6
-        YC = Y(1601:1650,:);  NC = size(YC,1); % ones
-        Ytr{1} = [YA ; YB ; YC];
-        lbls = zeros(size(Ytr{1},1),3);
-        lbls(1:NA,1)=1;
-        lbls(NA+1:NA+NB,2)=1;
-        lbls(NA+NB+1:end,3)=1;
-        globalOpt.dataSetName = 'usps3Class';
-    case 'vercat3'
-        YA = Y(1:40,:);  NA = size(YA,1);% 0
-        YB = Y(5001:5040,:);  NB = size(YB,1); % 6
-        YC = Y(1601:1640,:);  NC = size(YC,1); % 1's
-        YD = Y(3041:3080,:);  ND = size(YD,1); % 3's
-        Ytr{1} = [YA ; YB ; YC; YD];
-        lbls = zeros(size(Ytr{1},1),4);
-        lbls(1:NA,1)=1;
-        lbls(NA+1:NA+NB,2)=1;
-        lbls(NA+NB+1:NA+NB+NC,3)=1;
-        lbls(NA+NB+NC+1:end,4)=1;
-        globalOpt.dataSetName = 'usps4Class';
-end
-
-model = hsvargplvmRestorePrunedModel(model, Ytr);
+fprintf('#--- Loaded a model with %d layers. See popup for learned scales.\n\n', model.H);
 
 figure; hsvargplvmShowScales(model);
 
 %% !!!!!!
-% ---- The following (between %{ and %} ) 
-% seems to have broken... check next code segment which does the same thing (sampling) but automatically
+% ---- The following seems to have problems with the GUI... If it's giving you a hard time
+% check next code segment which does the same thing (sampling) but automatically
+
 % From the parent or intermediate with outputs being in the 1st layer
-%{
-layer = 2;
 
-modelP = model;
-modelP.type = 'hsvargplvm';
-modelP.vardist = model.layer{layer}.vardist;
-modelP.X = modelP.vardist.means;
-modelP.q = size(modelP.X,2);
+% It's tricky to find a good starting point (initial drawn point) so as to demonstrate something
+% interesting... Here's a suggestion for the 5-layer model (experiment number 19)
+% (one starting point for each layer)..
 
-modelP.d = size(Ytr{1},2);
-if layer ==1
-    modelP.y = Ytr{1};
-else
-    modelP.y = model.layer{layer-1}.vardist.means;
+fprintf('#--- Sampling the latent space manually.\n');
+reply = input('# Do you want to skip this part? Y/N [N]: ', 's');
+if isempty(reply)
+    reply = 'N';
 end
 
-modelP.vis.index=-1;
-modelP.vis.layer = layer;
-lvmVisualiseGeneral(modelP,  [], 'imageVisualise', 'imageModify', false,[16 16], 0,0,1);
-%model.comp{v}, [], 'imageVisualise', 'imageModify', [height width], 0,0,1);
-%}
+
+if strcmp(reply, 'N')
+    startingPoints = [1, 79, 51];
+    layersToVisualise = [1, 2, 5];
+    dims = {{2,4}, {2,6}, {5 6}};
+    h1 = figure; h2 = figure;
+    for i=1:length(layersToVisualise)
+        layer = layersToVisualise(i);
+        fprintf('# Sampling from layer %d', layer)
+        
+        % Also check the scales to see interesting dimensions to sample from.
+        % Interesting dimensions for the model of exp. number 19 (5 layers) are:
+        % Layer 1 - dim. 2, Layer 2 - dim. 8, Layer 5 dim. 5 and 6
+        %
+        modelP = model;
+        modelP.type = 'hsvargplvm';
+        modelP.vardist = model.layer{layer}.vardist;
+        modelP.X = modelP.vardist.means;
+        modelP.q = size(modelP.X,2);
+        
+        modelP.d = size(Ytr{1},2);
+        if layer ==1
+            modelP.y = Ytr{1};
+        else
+            modelP.y = model.layer{layer-1}.vardist.means;
+        end
+        
+        modelP.vis.index=-1;
+        modelP.vis.layer = layer;
+        
+        modelP.vis.startPos = model.layer{layer}.vardist.means(startingPoints(i),:);
+        modelP.vis.startDim = dims{i};
+        modelP.vis.figHandle = {h1, h2};
+        lvmVisualiseGeneral(modelP,  [], 'imageVisualise', 'imageModify', false,[16 16], 1,0,1);
+        axis off
+        %model.comp{v}, [], 'imageVisualise', 'imageModify', [height width], 0,0,1);
+        fprintf('... Press any key to continue to next ')
+        if i==length(layersToVisualise), fprintf('demo\n'), else fprintf('layer\n'); end
+        pause
+    end
+end
 
 %% Sample automatically
 %- These values are model-specific (check scales).
@@ -123,43 +92,61 @@ startingPoint = [1 79 51 51];
 dim = [2 8 5 6];
 %---
 
-for j = 1:length(layers)
-    disp('Press any key to continue...')
-    pause
-    fprintf('# Sampling from layer %d, dimension %d\n', layers(j), dim(j))
-    layer = layers(j);
-    %hsvargplvmSampleLayer(model, lInp, lOut, ind,  dim,X, startingPoint)
-    [X,mu] = hsvargplvmSampleLayer(model,layer,1,-1,dim(j),[],startingPoint(j));
-    h=figure;
-    %pause
-    
-    %root = ['../diagrams/usps/sampleL' num2str(layer) 'Dim' num2str(dim) 'StPt' num2str(startingPoint)];
-    root = []; % Comment to SAVE
-    if ~isempty(root)
-        mkdir(root) %%%%
-    end
-    for i=1:size(mu,1)
-        imagesc(reshape(mu(i,:),16,16)'), colormap('gray')
-        truesize(h,[100 100])
-        axis off
-        if ~isempty(root)
-            fileName = [root filesep num2str(i)];
-            print('-dpdf', [fileName '.pdf']);
-            print('-dpng', [fileName '.png']);
-            fprintf('.')
-        else
-            pause(0.01)
-            %pause
-        end
-    end
-    imagesc(reshape(var(mu),16,16)'); title('variance samples')
+fprintf('\n#--- Automatic sampling...\n')
+reply = input('# Do you want to skip this part? Y/N [N]: ', 's');
+if isempty(reply)
+    reply = 'N';
 end
+
+if strcmp(reply, 'N')
+    for j = 1:length(layers)
+        fprintf('# Sampling from layer %d, dimension %d... ', layers(j), dim(j))
+        layer = layers(j);
+        %hsvargplvmSampleLayer(model, lInp, lOut, ind,  dim,X, startingPoint)
+        [X,mu] = hsvargplvmSampleLayer(model,layer,1,-1,dim(j),[],startingPoint(j));
+        h=figure;
+        %pause
+        
+        %root = ['../diagrams/usps/sampleL' num2str(layer) 'Dim' num2str(dim) 'StPt' num2str(startingPoint)];
+        root = []; % Comment to SAVE
+        if ~isempty(root)
+            mkdir(root) %%%%
+        end
+        for i=1:size(mu,1)
+            imagesc(reshape(mu(i,:),16,16)'), colormap('gray')
+            truesize(h,[100 100])
+            %axis off
+            if ~isempty(root)
+                fileName = [root filesep num2str(i)];
+                print('-dpdf', [fileName '.pdf']);
+                print('-dpng', [fileName '.png']);
+                fprintf('.')
+            else
+                pause(0.01)
+                %pause
+            end
+        end
+        imagesc(reshape(var(mu),16,16)'); title('variance samples')
+        disp('Done! Press any key to continue...')
+        pause
+    end
+end
+
+
 %% Do the above for all layers, all dims and show the variance in the end (this can
 % be a *bit* misleading, if the colormaps are not normalised... but helps
 % with the above demo, ie identifying which layers/dims are worth sampling)
+
+fprintf('\n#--- Get many samples from all layers, all dimensions and\n')
+disp('     show the variance across samples to get a feeling of the')
+disp('     kind of features discovered. ')
+disp('     Press any key to start...')
+pause
+
 close all
 scrsz = get(0,'ScreenSize');
-figure('Position',[scrsz(3)/4.86 scrsz(4)/1 1.2*scrsz(3)/1.6457 0.6*scrsz(4)/3.4682])
+%figure('Position',[scrsz(3)/4.86 scrsz(4)/1 1.2*scrsz(3)/1.6457 0.6*scrsz(4)/3.4682])
+figure
 startingPoint = 1;
 QQ=model.layer{1}.q; % layer 1 has the largest number of scales always
 clAll = [];
@@ -168,32 +155,35 @@ for layer=1:model.H
         %hsvargplvmSampleLayer(model, lInp, lOut, ind,  dim,X,startingPoint)
         [X,mu] = hsvargplvmSampleLayer(model,layer,1,-1,dim,[],startingPoint);
         p = QQ*(layer-1)+dim;
-        subplot(model.H,QQ ,p)  
+        subplot(model.H,QQ ,p)
         imagesc(reshape(var(mu), 16,16)')
-        clAll = [clAll; caxis]; 
+        clAll = [clAll; caxis];
     end
 end
 colormap gray
 % As above but use the same colormap
-figure('Position',[scrsz(3)/4.86 scrsz(4)/3 1.2*scrsz(3)/1.6457 0.6*scrsz(4)/3.4682])
-
+%figure('Position',[scrsz(3)/4.86 scrsz(4)/3 1.2*scrsz(3)/1.6457 0.6*scrsz(4)/3.4682])
+figure
 
 for layer=1:model.H
     for dim=1:model.layer{layer}.q
         [X,mu] = hsvargplvmSampleLayer(model,layer,1,-1,dim,[],startingPoint);
         p = QQ*(layer-1)+dim;
-        subplot(model.H, QQ,p) 
+        subplot(model.H, QQ,p)
         imagesc(reshape(var(mu), 16,16)')
         axis off
-        caxis(max(clAll)); 
+        caxis(max(clAll));
     end
 end
 colormap gray
-figure('Position',[0.01*scrsz(3) 1.5*scrsz(4)/10 0.17*scrsz(3) 0.5*scrsz(4)])
-hsvargplvmShowScales(model)
+%figure('Position',[0.01*scrsz(3) 1.5*scrsz(4)/10 0.17*scrsz(3) 0.5*scrsz(4)])
+figure
+hsvargplvmShowScales(model);
 
+fprintf('... Done!\n\n')
 
 %% NN errors: (what matters mainly is the error on the top layer)
+disp('#--- NN errors. Press any key to start...'); pause
 figure
 for h=1:model.H
     % order wrt to the inputScales
@@ -214,8 +204,6 @@ for h=1:model.H
 end
 
 
-
-
 %% Visualise the latent space with the images
 
 close all
@@ -228,7 +216,6 @@ end
 curModel.vardist = model.layer{h}.vardist;
 mm2 = vargplvmReduceModel2(curModel,2);
 errors2 = fgplvmNearestNeighbour(mm2, lbls);
-
 
 
 dataType = 'image';
@@ -244,3 +231,5 @@ Y = Ytr{1};
 lvmScatterPlot(mm2, lbls);
 % 3rd argument: if we remove overlaps
 figure; hsvargplvmStaticImageVisualise(mm2, Y, false, [dataType 'Visualise'], axesWidth, varargs{:});
+
+fprintf('\n\n#--- End of demo!\n')

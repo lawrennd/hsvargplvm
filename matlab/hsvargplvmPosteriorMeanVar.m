@@ -28,7 +28,9 @@ elseif nargin < 6 || isempty(ind)
     ind  = model.layer{lOut}.M; 
 end
 
-
+if model.layer{lInp}.q ~= size(X,2)
+    error('Latent position given has the wrong dimensions!')
+end
 if nargin < 3 
     varX = [];
 end
