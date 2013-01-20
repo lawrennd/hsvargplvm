@@ -41,7 +41,7 @@ options.optimiser = 'scg2';
 % options.scaleVal = sqrt(var(Ytr{i}(:))); %%% ??
 options.scale2var1 = globalOpt.scale2var1;
 
-
+options.fixInducing = globalOpt.fixInducing;
 
 %----- Parent prior (we call priors "dynamics", but it can actually be some
 % other type of prior, eg labels etc.). 
@@ -59,7 +59,11 @@ else
     optionsDyn.type = 'vargpTime';
     optionsDyn.inverseWidth=30;
     optionsDyn.vardistCovars = globalOpt.vardistCovarsMult;
-    optionsDyn.initX = globalOpt.initX;
+    if iscell(globalOpt.initX)
+        optionsDyn.initX = globalOpt.initX{end};
+    else
+        optionsDyn.initX = globalOpt.initX;
+    end
     optionsDyn.constrainType = globalOpt.dynamicsConstrainType;
     if ~isempty(timeStampsTraining)
         optionsDyn.t = timeStampsTraining;

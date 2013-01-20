@@ -19,6 +19,7 @@ if pool_open && (isfield(model,'parallel') && model.parallel)
 end
 
 g_leaves = hsvargplvmLogLikeGradientsLeaves(model.layer{1});
+
 [g_nodes g_sharedLeaves] = hsvargplvmLogLikeGradientsNodes(model);
 % Amend the vardistr. derivatives of the leaves only with those of the
 % higher layer.
@@ -27,6 +28,9 @@ g_leaves = hsvargplvmLogLikeGradientsLeaves(model.layer{1});
 %%%%%%%%%%
 g_leaves(1:model.layer{1}.vardist.nParams) = g_leaves(1:model.layer{1}.vardist.nParams) + g_sharedLeaves;
 
+
+
+
 g_entropies = hsvargplvmLogLikeGradientsEntropies(model.layer{1});
 
 % This is the gradient of the entropies (only affects covars). It's just -0.5*I
@@ -34,6 +38,9 @@ N = model.layer{1}.N;
 Q1 = model.layer{1}.q;
 %g_entropies = -0.5.*g_leaves(N*Q1+1:model.layer{1}.vardist.nParams);
 g_leaves(N*Q1+1:model.layer{1}.vardist.nParams) = g_leaves(N*Q1+1:model.layer{1}.vardist.nParams) + g_entropies;
+
+
+
 
 % Augment the derivatives of the vardistr. covars of each layer with the derivs.
 % of the entropies (the leaves are done separately)
@@ -52,6 +59,15 @@ for h=2:model.H-1
     offset = offset + model.layer{h}.nParams;
 end
 g = [g_leaves  g_nodes];
+
+
+
+%%%-- TEMP
+%params = hsvargplvmExtractParam(model);
+%g=zeros(1, length(params));
+%g(1:length([g_leaves g_nodes])) = [g_leaves g_nodes];
+%return
+%%--
 
 dynUsed = (isfield(model.layer{end},'dynamics') && ~isempty(model.layer{end}.dynamics));
 % We only have to amend the parent's var. distr. derivatives if there are
@@ -279,7 +295,9 @@ gVarmeans = - model.vardist.means(:)';
 % becomes a / and the signs change)
 gVarcovs = 0.5 - 0.5*model.vardist.covars(:)';
 
-
+%{
+% The following is not needed... parent node is not connected to any
+% inducing points...!!!
 if isfield(model, 'fixInducing') & model.fixInducing
     % TODO!!!
     warning('Implementation for fixing inducing points is not complete yet...')
@@ -292,7 +310,7 @@ if isfield(model, 'fixInducing') & model.fixInducing
     % vardist.means and vardist.covars and vardist.lantentDimension are used.
     [gKern1, gVarmeans1, gVarcovs1, gInd1] = kernVardistPsi1Gradient(model.kern, model.vardist, model.X_u, gPsi1',learnInducing);
     [gKern2, gVarmeans2, gVarcovs2, gInd2] = kernVardistPsi2Gradient(model.kern, model.vardist, model.X_u, gPsi2,learnInducing);
-    [gKern0, gVarmeans0, gVarcovs0] = kernVardistPsi0Gradient(model.kern, model.vardist, gPsi0,learnInducing);
+    [gKern0, gVarmeans0, gVarcovs0] = kernVardistPsi0Gradient(model.kern, model.vardist, gPsi0);
 
     %%% Compute Gradients with respect to X_u %%%
     gKX = kernGradX(model.kern, model.X_u, model.X_u);
@@ -318,6 +336,7 @@ if isfield(model, 'fixInducing') & model.fixInducing
     %we use all the indices anyway.
     gVarmeans = gVarmeans + gInd;
 end
+%}
 
 gVar = [gVarmeans gVarcovs];
 if isfield(model.vardist,'paramGroups')

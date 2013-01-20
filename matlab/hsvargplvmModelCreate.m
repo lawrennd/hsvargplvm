@@ -78,6 +78,8 @@ for h = 1:options.H
             fprintf('# Initialising level %d with %s\n',h, initX)
             initFunc = str2func([initX 'Embed']);
             curX  = initFunc(mAll, Q, initXOptions{h}{:});
+        else
+            curX = initX;
         end
     else % M > 1
         % Initialise in the svargplvm style
@@ -112,10 +114,10 @@ for h = 1:options.H
         else
             K = options.K{h}{i};
         end
-        if K == -1
+        if K == -1 || (options.fixInducing && h ~= options.H) %%% NEW (the second part is because we haven't implemented fixing inducing for the parent)
             K = size(Ytr{i},1);
         end
-               
+                
         opt = options;
         % DOn't allow the D >> N trick for layers > 1
         if h~=1

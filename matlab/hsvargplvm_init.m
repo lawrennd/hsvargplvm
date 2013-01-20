@@ -13,25 +13,6 @@ if ~exist('globalOpt')
     
  
     %-------------------------------------------- Extra for hsvargplvm-----
-    %%%%%%%%%%%%%%%%%%%%% VARIOUS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    defaults.displayIters = true;
-    
-    % If we are fixing beta or sigmaf, we will do so only for the following
-    % layers (1 is only leaves)
-    defaults.initVardistLayers = 1;
-    
-    % If true, then the layer h takes a CENTERED version of the X of layer
-    % h-1. That might not be correct because the expectation in the bound
-    % is computed disregarding biases. The scaleData that centers the means
-    % if this option is on, is in the create and updateStats functions
-    defaults.centerMeans = false;
-    
-    % If == 1, then there will be one leaf model per input dimension (only
-    % if the corresponding demo checks and takes this action)
-    % If == 2, then the multOutput setting will also be carried in the
-    % second layer (i.e. one model per latent dimension). And so on.
-    % Maximum number allowed for this value is H-1.
-    defaults.multOutput = 0;
     
     %%%%%%%%%%%%%%%%%%%%%% GRAPHICAL MODEL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % This is one entry, being replicated in all models, all layers.
@@ -59,7 +40,28 @@ if ~exist('globalOpt')
     % -1 means that K == N.
     defaults.K = -1;
     
+    %%%%%%%%%%%%%%%%%%%%% VARIOUS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    defaults.displayIters = true;
     
+    % If we are fixing beta or sigmaf, we will do so only for the following
+    % layers (1 is only leaves)
+        %defaults.initVardistLayers = 1;
+    defaults.initVardistLayers = 1:defaults.H;
+    
+    % If true, then the layer h takes a CENTERED version of the X of layer
+    % h-1. That might not be correct because the expectation in the bound
+    % is computed disregarding biases. The scaleData that centers the means
+    % if this option is on, is in the create and updateStats functions
+    defaults.centerMeans = false;
+    
+    % If == 1, then there will be one leaf model per input dimension (only
+    % if the corresponding demo checks and takes this action)
+    % If == 2, then the multOutput setting will also be carried in the
+    % second layer (i.e. one model per latent dimension). And so on.
+    % Maximum number allowed for this value is H-1.
+    defaults.multOutput = 0;
+    
+    defaults.fixInducing = 0;
     %%%%%%%%%%%%%%%%%%%%%%%%%%%   LATENT SPACE %%%%%%%%%%%%%%%%%%%%%%%%%
        
     % The dimensionality of each latent space layer. If it's a cell array, then
@@ -76,6 +78,10 @@ if ~exist('globalOpt')
     % initialisation for each level.
     % The values of this field are either strings, so that [@initX 'Embed']
     % is called, or it can be a matrix of an a priori computed latent space.
+    % Other options for embedding:
+    % 'pca','isomap2','vargplvm','fgplvm','outputs'. The last requires that
+    % Q==D and initialises X=Y where the data is scaled so that it's 0 mean
+    % 1 variance
     defaults.initX = 'ppca';
     
     % How to initialise the latent space of level h in case there are more than one
@@ -124,6 +130,16 @@ if ~exist('globalOpt')
         end
     end
     
+    %----- Further interactions between fields ----------------
+    % Some fields take their initial values after we decide on the model
+    % structure, ie H and M.
+    %
+    % The default initVardistLayers is depending on the H, if given. If
+    % explicitely a different initVardistLayers value is given, then use
+    % that one.
+    if exist('H') && ~exist('initVardistLayers') 
+        globalOpt.initVardistLayers = 1:H;
+    end  
     
     clear('defaults', 'fnames');
    

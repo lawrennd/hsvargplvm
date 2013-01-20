@@ -42,6 +42,8 @@ if globalOpt.multOutput
         Yall{d} = Y(:,d);
     end
     %---
+else
+    Yall{1} = Y;
 end
 
  
@@ -52,11 +54,13 @@ options.optimiser = 'scg2';
 %%
 model = hsvargplvmModelCreate(Yall, options, globalOpt);
 
-% Some dimensions might be not learned but nevertheless required as an
-% output so that the dimensions are right (e.g. hsvargplvmClassVisualise).
-% In that case, just pad these dims. with zeros
-model.zeroPadding.rem = vA; % these are not learned
-model.zeroPadding.keep = dms; % These are the ones kept
+if globalOpt.multOutput
+    % Some dimensions might be not learned but nevertheless required as an
+    % output so that the dimensions are right (e.g. hsvargplvmClassVisualise).
+    % In that case, just pad these dims. with zeros
+    model.zeroPadding.rem = vA; % these are not learned
+    model.zeroPadding.keep = dms; % These are the ones kept
+end
 
 params = hsvargplvmExtractParam(model);
 model = hsvargplvmExpandParam(model, params);

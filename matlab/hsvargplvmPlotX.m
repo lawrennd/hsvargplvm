@@ -15,7 +15,11 @@ if nargin < 3
 end
 
 if length(dims) > 3
-    error('Can only plot two or three dimensions against each other')
+    %error('Can only plot two or three dimensions against each other')
+    for d=1:length(dims)
+        plot(model.layer{layer}.vardist.means(:, dims(d)), symb); title(['d=' num2str(dims(d))])
+        pause
+    end
 end
 
 

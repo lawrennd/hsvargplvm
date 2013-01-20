@@ -36,9 +36,9 @@ if length(varargin) == 2
         options(9) = varargin{2};
         if options(9)
             [params, names] = hsvargplvmExtractParam(model);
-            for i=1:length(names)
-                fprintf('%d\t%s\n', i, names{i});
-            end
+           % for i=1:length(names)
+           %     fprintf('%d\t%s\n', i, names{i});
+           % end
         else
             params = hsvargplvmExtractParam(model);
         end

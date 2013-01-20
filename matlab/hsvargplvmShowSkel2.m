@@ -18,7 +18,7 @@ Yall{2} = YB;
 
 %%
 
-m=2;
+m=1;
 
 figure
 dataType = 'skel';
@@ -42,3 +42,4 @@ modelP.y = Yall{m}; % Ytochannels(Ynew);
 
 lvmVisualiseGeneral(modelP, [], [dataType 'Visualise'], [dataType 'Modify'],false, skel{m});
 ylim([-20, 30]);
+zlim([0, 40]);

@@ -14,16 +14,18 @@ names = {};
 
 
 
-% Inducing inputs 
+% Inducing inputs
 if ~model.fixInducing
-    params =  [params model.X_u(:)'];
-    if returnNames 
-      for i = 1:size(model.X_u, 1)
-      for j = 1:size(model.X_u, 2)
-          X_uNames{i, j} = ['X_u(' num2str(i) ', ' num2str(j) ')'];
-      end
-      end
-      names = {names{:}, X_uNames{:}};
+    if ~isfield(model, 'learnInducing') || (isfield(model, 'learnInducing') && model.learnInducing)
+        params =  [params model.X_u(:)'];
+        if returnNames
+            for i = 1:size(model.X_u, 1)
+                for j = 1:size(model.X_u, 2)
+                    X_uNames{i, j} = ['X_u(' num2str(i) ', ' num2str(j) ')'];
+                end
+            end
+            names = {names{:}, X_uNames{:}};
+        end
     end
 end
 

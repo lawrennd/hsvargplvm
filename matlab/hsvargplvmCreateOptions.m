@@ -64,7 +64,9 @@ options = rmfield(options, 'Kold');
 
 
 % kern, SNR
-options = rmfield(options, 'kern');
+%if isfield(options, 'kern')
+    options = rmfield(options, 'kern');
+%end
 for h=1:options.H
     for m=1:options.M{h}
         % Kern
@@ -88,6 +90,6 @@ for h=1:options.H
         end
     end
 end
-
+%options.baseKern = options.kern; % Unecessary...
 
 

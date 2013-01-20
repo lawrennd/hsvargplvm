@@ -25,10 +25,13 @@ for h=1:model.H %%% FOR EACH LAYER
         endValPrev = endVal;
         %--- inducing inputs 
         startVal = endVal+1;
-        if model.layer{h}.comp{m}.fixInducing
-            model.layer{h}.comp{m}.X_u = model.layer{h}.vardist.means(model.layer{h}.comp{m}.inducingIndices, :); % static
-            % X_u values are taken from X values.
-            % model.X_u = model.X(model.inducingIndices, :);
+       % if model.layer{h}.comp{m}.fixInducing
+        if model.layer{h}.comp{m}.fixInducing  || (isfield(model.layer{h}.comp{m}, 'learnInducing') && ~model.layer{h}.comp{m}.learnInducing)
+            if ~(isfield(model.layer{h}.comp{m}, 'learnInducing') && ~model.layer{h}.comp{m}.learnInducing) % If this is true, don't change the values at all
+                model.layer{h}.comp{m}.X_u = model.layer{h}.vardist.means(model.layer{h}.comp{m}.inducingIndices, :); % static
+                % X_u values are taken from X values.
+                % model.X_u = model.X(model.inducingIndices, :);
+            end
         else
             % Parameters include inducing variables.
             endVal = endVal + model.layer{h}.q*model.layer{h}.comp{m}.k;
