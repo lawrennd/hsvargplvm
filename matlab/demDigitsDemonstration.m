@@ -116,7 +116,7 @@ if strcmp(reply, 'N')
         end
         for i=1:size(mu,1)
             imagesc(reshape(mu(i,:),16,16)'), colormap('gray')
-            truesize(h,[100 100])
+            axis image%truesize(h,[100 100])
             %axis off
             if ~isempty(root)
                 fileName = [root filesep num2str(i)];
