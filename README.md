@@ -1,2 +1,2 @@
-# hsvargplvm
-Deep Gaussian Process software in MATLAB.
+Deep Gaussian Processes in MATLAB
+===
